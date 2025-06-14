@@ -2,6 +2,7 @@
 ===
 
 Slackボットを第三者のワークスペースにインストールし、WebHookURLを指定しなくてもoAuth認証トークンを利用して通知を送るための検証用リポジトリです。
+Slackの設定内容等については [こちら](https://junkbox.wicurio.com/index.php?Slack%E9%80%9A%E7%9F%A5%E9%80%A3%E6%90%BA%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E6%A4%9C%E8%A8%BC) の記事を参考にしてください。
 
 ## ディレクトリ構成
 
