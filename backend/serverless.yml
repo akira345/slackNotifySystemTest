@@ -1,0 +1,77 @@
+service: Slack-integration-backend
+frameworkVersion: '3'
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ap-northeast-1
+  logRetentionInDays: 7
+
+custom:
+  secrets: ${file(../config/secrets.yml)}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+functions:
+  api:
+    handler: app.handler
+    environment:
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_REGION: ${self:provider.region}
+      SLACK_SIGNING_SECRET: ${self:custom.secrets.SLACK_SIGNING_SECRET}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:DeleteItem
+        Resource:
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+  oauth:
+    handler: oauth.handler
+    environment:
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_REGION: ${self:provider.region}
+      SLACK_CLIENT_ID: ${self:custom.secrets.SLACK_CLIENT_ID}
+      SLACK_CLIENT_SECRET: ${self:custom.secrets.SLACK_CLIENT_SECRET}
+      SLACK_REDIRECT_URI: ${self:custom.secrets.SLACK_REDIRECT_URI}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource:
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+    events:
+      - http:
+          path: /slack/oauth/{proxy+}
+          method: ANY
+          cors: true
+
+resources:
+  Resources:
+    SlackIntegrations:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.secrets.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+

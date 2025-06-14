@@ -1,0 +1,40 @@
+service: slack-integration-slackbot
+frameworkVersion: "3"
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ap-northeast-1
+  logRetentionInDays: 7
+
+custom:
+  secrets: ${file(../config/secrets.yml)}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+functions:
+  slackbot:
+    handler: bot.handler
+    environment:
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_REGION: ${self:provider.region}
+      SLACK_CLIENT_ID: ${self:custom.secrets.SLACK_CLIENT_ID}
+      SLACK_CLIENT_SECRET: ${self:custom.secrets.SLACK_CLIENT_SECRET}
+      SLACK_SIGNING_SECRET: ${self:custom.secrets.SLACK_SIGNING_SECRET}
+      SLACK_STATE_SECRET: ${self:custom.secrets.SLACK_STATE_SECRET}
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:DeleteItem
+        Resource:
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+    events:
+      - http:
+          path: slack/events
+          method: post
+          cord: true
