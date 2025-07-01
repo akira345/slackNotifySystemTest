@@ -1,0 +1,16 @@
+{
+  "name": "sam-slackbot",
+  "version": "1.0.0",
+  "description": "Slack Bot Lambda for AWS SAM",
+  "type": "module",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.18.0",
+    "@aws-sdk/client-dynamodb": "^3.632.0",
+    "@aws-sdk/lib-dynamodb": "^3.632.0",
+    "js-yaml": "^4.1.0"
+  }
+}

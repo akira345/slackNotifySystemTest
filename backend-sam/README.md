@@ -1,6 +1,7 @@
-# AWS SAM Migration
+# AWS SAM版 Slack Integration Backend
 
-このディレクトリには、Serverless FrameworkからAWS SAMへの移行サンプルが含まれています。
+このディレクトリには、Slack連携技術検証システムのAWS SAM版が含まれています。
+元のServerless FrameworkからAWS SAMに移行し、全てのLambda関数コードを内包した自己完結型の実装です。
 
 ## 前提条件
 
@@ -8,45 +9,135 @@
 - AWS SAM CLI (`pip install aws-sam-cli`)
 - AWS CLI設定済み
 
+## ディレクトリ構造
+
+```
+backend-sam/
+├── src/                          # Lambda関数コード
+│   ├── api/                      # メインAPI（旧backend/app.js）
+│   │   ├── app.js
+│   │   └── package.json
+│   ├── oauth/                    # OAuth処理（旧backend/oauth.js）
+│   │   ├── oauth.js
+│   │   └── package.json
+│   ├── slackbot/                 # Slackbot（旧slackbot/bot.js）
+│   │   ├── bot.js
+│   │   └── package.json
+│   └── shared/                   # 共通ファイル
+│       └── slack_scopes.js
+├── config/                       # 設定ファイル
+│   ├── secrets.example.yml       # 設定例
+│   └── secrets.yml               # 実際の設定（gitignore対象）
+├── template.yaml                 # SAMテンプレート
+├── samconfig.toml               # SAM設定ファイル
+├── deploy.sh                    # デプロイスクリプト
+└── README.md                    # このファイル
+```
+
 ## セットアップ
 
-```bash
-# 環境変数の設定
-export SLACK_CLIENT_ID="your-slack-client-id"
-export SLACK_CLIENT_SECRET="your-slack-client-secret"
-export SLACK_SIGNING_SECRET="your-slack-signing-secret"
-export SLACK_REDIRECT_URI="your-redirect-uri"
+### 1. 設定ファイルの準備
 
-# ビルド
+```bash
+# 設定ファイルをコピーして編集
+cp config/secrets.example.yml config/secrets.yml
+# secrets.ymlを編集してSlackアプリの情報を設定
+```
+
+### 2. ビルドとデプロイ
+
+```bash
+# 依存関係のインストールとビルド
 sam build
 
-# デプロイ
-sam deploy --guided  # 初回のみ
+# 初回デプロイ（対話式）
+sam deploy --guided
+
+# 2回目以降のデプロイ
+sam deploy
 # または
 ./deploy.sh
 ```
 
-## 主要なファイル
+## 設定管理
 
-- `template.yaml` - SAMテンプレート（CloudFormation拡張）
-- `samconfig.toml` - SAM設定ファイル
-- `deploy.sh` - デプロイスクリプト
+このSAM版では、設定の読み込みを以下の順序で行います：
 
-## Serverless Frameworkとの比較
+1. `config/secrets.yml`ファイルからの読み込み（優先）
+2. 環境変数からのフォールバック
 
-### メリット
+Lambda環境では`/opt/config/secrets.yml`から、ローカル開発環境では相対パスから読み込みます。
 
-- AWSネイティブツール
-- CloudFormationベース
-- ローカル開発環境が充実
-- デプロイが高速
-- AWS公式サポート
+## 機能
 
-### 考慮点
+### Lambda関数
 
-- AWS専用（マルチクラウド非対応）
-- YAMLベースの設定
-- 複雑なロジックは書きにくい
+1. **API Function** (`src/api/`)
+   - メインのSlack Integration API
+   - 統合管理、通知送信等
+   - エンドポイント: `/{proxy+}`
+
+2. **OAuth Function** (`src/oauth/`)
+   - SlackワークスペースのOAuth認証
+   - ワークスペース・チャンネル管理
+   - エンドポイント: `/slack/oauth/{proxy+}`
+
+3. **SlackBot Function** (`src/slackbot/`)
+   - Slack Bolt使用のSlackアプリ
+   - イベント処理
+   - エンドポイント: `/slack/events`
+
+### AWS リソース
+
+- **API Gateway**: REST API
+- **DynamoDB**: データストレージ（Pay-per-request）
+- **CloudWatch Logs**: ログ管理（7日間保持）
+
+## ローカル開発
+
+```bash
+# ローカルAPIの起動
+sam local start-api
+
+# 個別関数のテスト
+sam local invoke ApiFunction --event events/api-event.json
+```
+
+## 移行のメリット
+
+### 自己完結性
+- 元の`backend/`と`slackbot/`ディレクトリに依存しない
+- 全てのコードが`backend-sam/src/`以下に配置
+- 独立したpackage.jsonによる依存関係管理
+
+### 設定管理
+- 外部ファイル（`config/secrets.yml`）による設定管理
+- 環境変数フォールバック機能
+- 本番環境とローカル環境の設定切り替え
+
+### AWSネイティブ
+- CloudFormationベースのインフラ定義
+- AWS公式ツールによるサポート
+- 高速なデプロイとロールバック
+
+## トラブルシューティング
+
+### ビルドエラー
+```bash
+# 依存関係のクリーンインストール
+cd src/api && rm -rf node_modules package-lock.json && npm install
+cd ../oauth && rm -rf node_modules package-lock.json && npm install
+cd ../slackbot && rm -rf node_modules package-lock.json && npm install
+```
+
+### デプロイエラー
+```bash
+# SAM設定の確認
+sam validate
+
+# 詳細ログでデプロイ
+sam deploy --debug
+```
 
 ## コマンド
 

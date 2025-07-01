@@ -29,6 +29,10 @@ Parameters:
   SlackRedirectUri:
     Type: String
     Description: Slack OAuth Redirect URI
+  SlackBotToken:
+    Type: String
+    Description: Slack Bot Token
+    NoEcho: true
   DynamoDBTableName:
     Type: String
     Default: SlackIntegrations
@@ -56,7 +60,7 @@ Resources:
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../backend/
+      CodeUri: src/api/
       Handler: app.handler
       Environment:
         Variables:
@@ -80,7 +84,7 @@ Resources:
   OAuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../backend/
+      CodeUri: src/oauth/
       Handler: oauth.handler
       Environment:
         Variables:
@@ -101,6 +105,34 @@ Resources:
       LoggingConfig:
         LogFormat: JSON
         LogGroup: !Ref OAuthLogGroup
+
+  # SlackBot Lambda Function
+  SlackBotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/slackbot/
+      Handler: bot.handler
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+          SLACK_CLIENT_ID: !Ref SlackClientId
+          SLACK_CLIENT_SECRET: !Ref SlackClientSecret
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_STATE_SECRET: !Ref SlackStateSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackIntegrationsTable
+      Events:
+        SlackEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SlackIntegrationApi
+            Path: /slack/events
+            Method: POST
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Ref SlackBotLogGroup
 
   # API Gateway
   SlackIntegrationApi:
@@ -150,6 +182,16 @@ Resources:
                 passthroughBehavior: "when_no_match"
                 httpMethod: "POST"
                 type: "aws_proxy"
+          /slack/events:
+            post:
+              produces:
+                - "application/json"
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SlackBotFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
 
   # CloudWatch Log Groups
   ApiLogGroup:
@@ -162,6 +204,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${OAuthFunction}"
+      RetentionInDays: 7
+
+  SlackBotLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SlackBotFunction}"
       RetentionInDays: 7
 
 Outputs:
@@ -177,3 +225,9 @@ Outputs:
   OAuthFunction:
     Description: "OAuth Lambda Function ARN"
     Value: !GetAtt OAuthFunction.Arn
+  SlackBotFunction:
+    Description: "SlackBot Lambda Function ARN"
+    Value: !GetAtt SlackBotFunction.Arn
+  SlackOAuthRedirectUri:
+    Description: "Slack OAuth Redirect URI (設定に使用)"
+    Value: !Sub "https://${SlackIntegrationApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/oauth/callback"

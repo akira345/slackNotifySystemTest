@@ -1,0 +1,18 @@
+{
+  "name": "sam-slack-oauth",
+  "version": "1.0.0",
+  "description": "Slack OAuth Lambda for AWS SAM",
+  "type": "module",
+  "main": "oauth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "serverless-http": "^3.2.0",
+    "axios": "^1.7.3",
+    "@aws-sdk/client-dynamodb": "^3.632.0",
+    "@aws-sdk/lib-dynamodb": "^3.632.0",
+    "js-yaml": "^4.1.0"
+  }
+}
