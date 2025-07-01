@@ -1,6 +1,6 @@
 # Infrastructure as Code Migration Samples
 
-このリポジトリには、Serverless FrameworkからAWS CDK、AWS SAM、Terraformへの移行サンプルが含まれています。
+このリポジトリには、Serverless FrameworkからAWS CDK、AWS SAMへの移行サンプルが含まれています。
 
 ## 🌟 概要
 
@@ -13,7 +13,6 @@
 | `main` | Serverless Framework | 元の実装 |
 | `migration/aws-cdk` | AWS CDK | TypeScript + AWS CDKでの実装 |
 | `migration/aws-sam` | AWS SAM | CloudFormationベースの実装 |
-| `migration/terraform` | Terraform | HCLでのマルチクラウド対応実装 |
 
 ## 🚀 移行サンプル
 
@@ -49,39 +48,24 @@ sam build && sam deploy --guided
 ```
 
 **特徴:**
+
 - AWSネイティブツール
 - ローカル開発環境が充実
 - CloudFormationベース
 - サーバーレス特化
 
-### 3. Terraform (HCL)
-
-```bash
-git checkout migration/terraform
-cd backend-terraform
-cp terraform.tfvars.example terraform.tfvars
-# terraform.tfvars を編集
-terraform init && terraform apply
-```
-
-**特徴:**
-- マルチクラウド対応
-- 宣言的な設定記述
-- 豊富なプロバイダー
-- 状態管理機能
-
 ## 📊 比較表
 
-| 項目 | Serverless Framework | AWS CDK | AWS SAM | Terraform |
-|------|---------------------|---------|---------|-----------|
-| **学習コスト** | 低 | 中 | 低-中 | 高 |
-| **設定記述** | YAML | TypeScript | YAML | HCL |
-| **クラウド対応** | マルチ | AWS特化 | AWS特化 | マルチ |
-| **ローカル開発** | 限定的 | 普通 | 優秀 | 限定的 |
-| **デプロイ速度** | 高速 | 中 | 高速 | 中 |
-| **細かい制御** | 限定的 | 豊富 | 中 | 豊富 |
-| **コミュニティ** | 大 | 大 | 中 | 大 |
-| **企業サポート** | - | AWS公式 | AWS公式 | HashiCorp |
+| 項目 | Serverless Framework | AWS CDK | AWS SAM |
+|------|---------------------|---------|---------|
+| **学習コスト** | 低 | 中 | 低-中 |
+| **設定記述** | YAML | TypeScript | YAML |
+| **クラウド対応** | マルチ | AWS特化 | AWS特化 |
+| **ローカル開発** | 限定的 | 普通 | 優秀 |
+| **デプロイ速度** | 高速 | 中 | 高速 |
+| **細かい制御** | 限定的 | 豊富 | 中 |
+| **コミュニティ** | 大 | 大 | 中 |
+| **企業サポート** | - | AWS公式 | AWS公式 |
 
 ## 🔧 使用技術
 
@@ -106,24 +90,21 @@ terraform init && terraform apply
 ## 🎯 移行の選択指針
 
 ### AWS CDKを選ぶべき場合
+
 - TypeScriptの知識がある
 - 細かいAWSリソース制御が必要
 - 型安全性を重視
 - AWSエコシステム内での開発
 
 ### AWS SAMを選ぶべき場合
+
 - AWSサーバーレス特化
 - ローカル開発を重視
 - 素早いプロトタイピング
 - AWS公式サポートが必要
 
-### Terraformを選ぶべき場合
-- マルチクラウド戦略
-- 既存のTerraform資産がある
-- インフラチームでの標準化
-- 状態管理が重要
-
 ### Serverless Frameworkを継続する場合
+
 - 素早い開発とデプロイが最優先
 - シンプルな構成で十分
 - 複数クラウドでの展開予定
