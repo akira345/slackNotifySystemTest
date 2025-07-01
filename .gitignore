@@ -1,29 +1,27 @@
+# シークレット・設定ファイル (実際の値を含むため除外)
 /config/secrets.yml
 !/config/secrets.example.yml
-.serverless
-node_modules
-.DS_Store
 
-# SAM環境別設定ファイル（実際の値を含むもの）を除外
-backend-sam/samconfig.toml
-backend-sam/samconfig.dev.toml
-backend-sam/samconfig.prod.toml
-# exampleファイルは除外しない
-!backend-sam/samconfig.example.toml
-!backend-sam/samconfig.dev.example.toml
-!backend-sam/samconfig.prod.example.toml
-
-# CDK環境別設定ファイル（実際の値を含むもの）を除外
+# AWS関連設定ファイル (実際の値を含むため除外)
+**/samconfig.toml
+**/cdk.context.json
 backend-cdk/config/cdkconfig.json
 backend-cdk/config/cdkconfig.dev.json
 backend-cdk/config/cdkconfig.prod.json
-# exampleファイルは除外しない
+# サンプルファイルは含める
+!**/samconfig.example.toml
 !backend-cdk/config/cdkconfig.example.json
 !backend-cdk/config/cdkconfig.dev.example.json
 !backend-cdk/config/cdkconfig.prod.example.json
 
-# CDK生成ファイル・ディレクトリ
-backend-cdk/cdk.out/
+# フレームワーク関連
+.serverless
+node_modules
+.DS_Store
+
+# AWS関連 build artifacts
+**/.aws-sam/
+**/cdk.out/
 backend-cdk/*.d.ts
 backend-cdk/lib/*.js
 backend-cdk/lib/*.d.ts
@@ -32,7 +30,15 @@ backend-cdk/bin/*.d.ts
 
 # Lambda関数のnode_modules（開発中に生成される場合）
 backend-cdk/lambda/*/node_modules/
-# package-lock.jsonは開発とbundling用に必要なので追跡する
 
 # TypeScript生成ファイル
 backend-cdk/*.tsbuildinfo
+
+# 環境変数ファイル
+.env
+.env.local
+.env.*.local
+
+# IDE設定
+.vscode/settings.json
+.idea/
