@@ -1,0 +1,23 @@
+version = 0.1
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "slack-integration-sam-prod"
+s3_bucket = ""  # SAM will create a managed bucket
+confirm_changeset = false  # 本番では自動実行
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+  "SlackClientId=${SLACK_CLIENT_ID_PROD}",
+  "SlackClientSecret=${SLACK_CLIENT_SECRET_PROD}",
+  "SlackSigningSecret=${SLACK_SIGNING_SECRET_PROD}",
+  "SlackRedirectUri=${SLACK_REDIRECT_URI_PROD}",
+  "SlackBotToken=${SLACK_BOT_TOKEN_PROD}",
+  "DynamoDBTableName=SlackIntegrations-prod"
+]
+region = "ap-northeast-1"
+
+[prod.local_start_api]
+[prod.local_start_api.parameters]
+host = "0.0.0.0"
+port = 3000

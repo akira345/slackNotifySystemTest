@@ -18,21 +18,26 @@ Parameters:
     Type: String
     Description: Slack Client ID
     NoEcho: true
+    Default: "{{resolve:ssm:/slack-integration/client-id:1}}"
   SlackClientSecret:
     Type: String
     Description: Slack Client Secret
     NoEcho: true
+    Default: "{{resolve:ssm-secure:/slack-integration/client-secret:1}}"
   SlackSigningSecret:
     Type: String
     Description: Slack Signing Secret
     NoEcho: true
+    Default: "{{resolve:ssm-secure:/slack-integration/signing-secret:1}}"
   SlackRedirectUri:
     Type: String
     Description: Slack OAuth Redirect URI
+    Default: "{{resolve:ssm:/slack-integration/redirect-uri:1}}"
   SlackBotToken:
     Type: String
     Description: Slack Bot Token
     NoEcho: true
+    Default: "{{resolve:ssm-secure:/slack-integration/bot-token:1}}"
   DynamoDBTableName:
     Type: String
     Default: SlackIntegrations

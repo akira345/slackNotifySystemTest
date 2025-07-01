@@ -1,0 +1,23 @@
+version = 0.1
+
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "slack-integration-sam-dev"
+s3_bucket = ""  # SAM will create a managed bucket
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+  "SlackClientId=${SLACK_CLIENT_ID_DEV}",
+  "SlackClientSecret=${SLACK_CLIENT_SECRET_DEV}",
+  "SlackSigningSecret=${SLACK_SIGNING_SECRET_DEV}",
+  "SlackRedirectUri=${SLACK_REDIRECT_URI_DEV}",
+  "SlackBotToken=${SLACK_BOT_TOKEN_DEV}",
+  "DynamoDBTableName=SlackIntegrations-dev"
+]
+region = "ap-northeast-1"
+
+[dev.local_start_api]
+[dev.local_start_api.parameters]
+host = "127.0.0.1"
+port = 3000

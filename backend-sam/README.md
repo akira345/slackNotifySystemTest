@@ -46,6 +46,7 @@ cp config/secrets.example.yml config/secrets.yml
 
 ### 2. ビルドとデプロイ
 
+#### 基本デプロイ
 ```bash
 # 依存関係のインストールとビルド
 sam build
@@ -55,18 +56,90 @@ sam deploy --guided
 
 # 2回目以降のデプロイ
 sam deploy
-# または
+```
+
+#### 環境別デプロイ
+```bash
+# 開発環境にデプロイ
+./deploy.sh dev
+
+# 本番環境にデプロイ  
+./deploy.sh prod
+
+# デフォルト環境にデプロイ
 ./deploy.sh
+```
+
+#### 環境変数の設定例
+開発環境用：
+```bash
+export SLACK_CLIENT_ID_DEV="your-dev-client-id"
+export SLACK_CLIENT_SECRET_DEV="your-dev-client-secret"
+export SLACK_SIGNING_SECRET_DEV="your-dev-signing-secret"
+export SLACK_REDIRECT_URI_DEV="https://dev-api-url/slack/oauth/callback"
+export SLACK_BOT_TOKEN_DEV="xoxb-your-dev-bot-token"
+```
+
+本番環境用：
+```bash
+export SLACK_CLIENT_ID_PROD="your-prod-client-id"
+export SLACK_CLIENT_SECRET_PROD="your-prod-client-secret"
+export SLACK_SIGNING_SECRET_PROD="your-prod-signing-secret"
+export SLACK_REDIRECT_URI_PROD="https://prod-api-url/slack/oauth/callback"
+export SLACK_BOT_TOKEN_PROD="xoxb-your-prod-bot-token"
 ```
 
 ## 設定管理
 
 このSAM版では、設定の読み込みを以下の順序で行います：
 
-1. `config/secrets.yml`ファイルからの読み込み（優先）
-2. 環境変数からのフォールバック
+1. **環境変数** (最優先)
+2. **設定ファイル** (`config/secrets.yml`)
+3. **デフォルト値**
 
-Lambda環境では`/opt/config/secrets.yml`から、ローカル開発環境では相対パスから読み込みます。
+### 開発環境
+ローカル開発では`config/secrets.yml`ファイルから読み込みます。
+
+### 本番環境
+
+本番環境では以下の方法でシークレットを管理できます：
+
+#### 方法1: デプロイ時にパラメータ指定 (推奨)
+```bash
+# 環境変数でシークレットを設定
+export SLACK_CLIENT_ID="your-client-id"
+export SLACK_CLIENT_SECRET="your-client-secret"
+export SLACK_SIGNING_SECRET="your-signing-secret"
+export SLACK_BOT_TOKEN="xoxb-your-bot-token"
+export SLACK_REDIRECT_URI="https://your-api-url/slack/oauth/callback"
+
+# デプロイ実行
+sam deploy
+```
+
+#### 方法2: AWS Systems Manager Parameter Store (より安全)
+```bash
+# パラメータを事前にAWSに登録
+aws ssm put-parameter --name "/slack-integration/client-id" --value "your-client-id" --type "String"
+aws ssm put-parameter --name "/slack-integration/client-secret" --value "your-client-secret" --type "SecureString"
+aws ssm put-parameter --name "/slack-integration/signing-secret" --value "your-signing-secret" --type "SecureString"
+aws ssm put-parameter --name "/slack-integration/bot-token" --value "xoxb-your-bot-token" --type "SecureString"
+aws ssm put-parameter --name "/slack-integration/redirect-uri" --value "https://your-api-url/slack/oauth/callback" --type "String"
+
+# デプロイ実行（パラメータは自動で解決される）
+sam deploy
+```
+
+#### 方法3: 直接パラメータ指定
+```bash
+sam deploy \
+  --parameter-overrides \
+  SlackClientId="your-client-id" \
+  SlackClientSecret="your-client-secret" \
+  SlackSigningSecret="your-signing-secret" \
+  SlackBotToken="xoxb-your-bot-token" \
+  SlackRedirectUri="https://your-api-url/slack/oauth/callback"
+```
 
 ## 機能
 
