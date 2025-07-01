@@ -32,7 +32,7 @@ parameter_overrides = [
   "SlackSigningSecret=YOUR_DEV_SIGNING_SECRET_HERE", # Slack Signing Secret（リクエスト検証用）
   "SlackRedirectUri=https://YOUR_DEV_API_URL/slack/oauth/callback", # OAuth認証後のリダイレクトURI
   "SlackStateSecret=YOUR_DEV_STATE_SECRET_HERE",  # OAuth State検証用のSecret
-  "SlackBotToken=xoxb-YOUR_DEV_BOT_TOKEN_HERE",   # SlackボットのAPI Token
+  "SlackBotToken=YOUR_DEV_BOT_TOKEN_HERE",        # SlackボットのAPI Token
   "DynamoDBTableName=SlackIntegrations-dev"       # DynamoDBテーブル名
 ]
 
@@ -52,7 +52,7 @@ parameter_overrides = [
   "SlackSigningSecret=YOUR_DEV_SIGNING_SECRET_HERE", # 開発環境用Slack Signing Secret
   "SlackRedirectUri=https://YOUR_DEV_API_URL/slack/oauth/callback", # 開発環境用OAuth Redirect URI
   "SlackStateSecret=YOUR_DEV_STATE_SECRET_HERE",  # 開発環境用OAuth State Secret
-  "SlackBotToken=xoxb-YOUR_DEV_BOT_TOKEN_HERE",   # 開発環境用SlackボットToken
+  "SlackBotToken=YOUR_DEV_BOT_TOKEN_HERE",        # 開発環境用SlackボットToken
   "DynamoDBTableName=SlackIntegrations-dev"       # 開発環境用DynamoDBテーブル名
 ]
 
@@ -77,7 +77,7 @@ parameter_overrides = [
   "SlackSigningSecret=YOUR_PROD_SIGNING_SECRET_HERE", # 本番環境用Slack Signing Secret
   "SlackRedirectUri=https://YOUR_PROD_API_URL/slack/oauth/callback", # 本番環境用OAuth Redirect URI
   "SlackStateSecret=YOUR_PROD_STATE_SECRET_HERE", # 本番環境用OAuth State Secret
-  "SlackBotToken=xoxb-YOUR_PROD_BOT_TOKEN_HERE",  # 本番環境用SlackボットToken
+  "SlackBotToken=YOUR_PROD_BOT_TOKEN_HERE",       # 本番環境用SlackボットToken
   "DynamoDBTableName=SlackIntegrations-prod"      # 本番環境用DynamoDBテーブル名
 ]
 
@@ -97,7 +97,7 @@ parameter_overrides = [
   "SlackSigningSecret=test-signing-secret",       # テスト用Signing Secret
   "SlackRedirectUri=http://localhost:3000/slack/oauth/callback", # ローカル用OAuth Redirect URI
   "SlackStateSecret=test-state-secret",           # テスト用OAuth State Secret
-  "SlackBotToken=xoxb-test-bot-token",            # テスト用ボットToken
+  "SlackBotToken=test-bot-token",                 # テスト用ボットToken
   "DynamoDBTableName=SlackIntegrations-local"     # ローカル用DynamoDBテーブル名
 ]
 
@@ -109,6 +109,6 @@ parameter_overrides = [
   "SlackSigningSecret=test-signing-secret",       # テスト用Signing Secret
   "SlackRedirectUri=http://localhost:3000/slack/oauth/callback", # ローカル用OAuth Redirect URI
   "SlackStateSecret=test-state-secret",           # テスト用OAuth State Secret
-  "SlackBotToken=xoxb-test-bot-token",            # テスト用ボットToken
+  "SlackBotToken=test-bot-token",                 # テスト用ボットToken
   "DynamoDBTableName=SlackIntegrations-local"     # ローカル用DynamoDBテーブル名
 ]
