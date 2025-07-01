@@ -30,7 +30,7 @@ backend-sam/
 │   └── secrets.yml               # 実際の設定（gitignore対象）
 ├── template.yaml                 # SAMテンプレート
 ├── samconfig.toml               # SAM設定ファイル
-├── deploy.sh                    # デプロイスクリプト
+├── package.json                 # 依存関係
 └── README.md                    # このファイル
 ```
 
@@ -55,63 +55,68 @@ cp samconfig.prod.example.toml samconfig.prod.toml
 
 ### 2. ビルドとデプロイ
 
-#### 基本デプロイ
+SAMコマンドを直接実行します。`<PROFILE_NAME>`を使用するAWSプロファイル名に置き換えてください：
+
 ```bash
 # 依存関係のインストールとビルド
 sam build
 
 # 初回デプロイ（対話式）
-sam deploy --guided
+sam deploy --guided --profile <PROFILE_NAME>
 
-# 2回目以降のデプロイ
-sam deploy
+# 開発環境へのデプロイ実行
+sam deploy --config-env dev --profile <PROFILE_NAME>
+
+# 本番環境へのデプロイ実行
+sam deploy --config-env prod --profile <PROFILE_NAME>
+
+# デプロイ前差分確認
+sam diff --config-env dev --profile <PROFILE_NAME>
+
+# CloudFormationテンプレートの生成（確認用）
+sam build && sam package --s3-bucket your-bucket --profile <PROFILE_NAME>
+
+# スタック削除
+sam delete --config-env dev --profile <PROFILE_NAME>
 ```
 
-#### 環境別デプロイ
+#### 例：MyAWSプロファイルを使用する場合
+
 ```bash
-# 開発環境にデプロイ
-./deploy.sh dev
+# 開発環境デプロイ
+sam deploy --config-env dev --profile MyAWS
 
-# 本番環境にデプロイ  
-./deploy.sh prod
-
-# デフォルト環境にデプロイ
-./deploy.sh
-```
-
-#### 環境変数の設定例
-開発環境用：
-```bash
-export SLACK_CLIENT_ID_DEV="your-dev-client-id"
-export SLACK_CLIENT_SECRET_DEV="your-dev-client-secret"
-export SLACK_SIGNING_SECRET_DEV="your-dev-signing-secret"
-export SLACK_REDIRECT_URI_DEV="https://dev-api-url/slack/oauth/callback"
-export SLACK_BOT_TOKEN_DEV="xoxb-your-dev-bot-token"
+# 本番環境デプロイ
+sam deploy --config-env prod --profile MyAWS
 ```
 
 ## 設定管理
 
-このSAM版では、設定を環境別のsamconfig.tomlファイルに直接ハードコードして管理します：
+このSAM版では、設定を環境別のsamconfig.tomlファイルに直接記述して管理します：
 
 ### 設定ファイル構成
+
 - **`samconfig.example.toml`** - デフォルト環境のサンプル
 - **`samconfig.dev.example.toml`** - 開発環境のサンプル  
 - **`samconfig.prod.example.toml`** - 本番環境のサンプル
+- **`samconfig.local.example.toml`** - ローカル実行用のサンプル
 - **`samconfig.toml`** - デフォルト環境（gitignore対象）
 - **`samconfig.dev.toml`** - 開発環境（gitignore対象）
 - **`samconfig.prod.toml`** - 本番環境（gitignore対象）
+- **`samconfig.local.toml`** - ローカル実行用（gitignore対象）
 
 ### セットアップ手順
+
 1. サンプルファイルから実際の設定ファイルをコピー
 2. 各ファイルの`parameter_overrides`セクションに実際のSlack設定を記入
-3. デプロイ時に環境を指定（`./deploy.sh dev` など）
+3. デプロイ時に環境を指定（`sam deploy --config-env dev` など）
 
 ### 特徴
+
 - **シンプル**: 環境変数やAWSサービスに依存しない
 - **環境分離**: 各環境で完全に独立した設定
 - **セキュリティ**: 実際の設定ファイルはgitから除外
 - **ポータブル**: どの環境でも同じ方法でデプロイ可能
-```
 
 ## 機能
 
@@ -138,82 +143,120 @@ export SLACK_BOT_TOKEN_DEV="xoxb-your-dev-bot-token"
 - **DynamoDB**: データストレージ（Pay-per-request）
 - **CloudWatch Logs**: ログ管理（7日間保持）
 
-## ローカル開発
-
-```bash
-# ローカルAPIの起動
-sam local start-api
-
-# 個別関数のテスト
-sam local invoke ApiFunction --event events/api-event.json
-```
-
 ## 移行のメリット
 
-### 自己完結性
-- 元の`backend/`と`slackbot/`ディレクトリに依存しない
-- 全てのコードが`backend-sam/src/`以下に配置
-- 独立したpackage.jsonによる依存関係管理
-
-### 設定管理
-- 外部ファイル（`config/secrets.yml`）による設定管理
-- 環境変数フォールバック機能
-- 本番環境とローカル環境の設定切り替え
-
-### AWSネイティブ
-- CloudFormationベースのインフラ定義
-- AWS公式ツールによるサポート
-- 高速なデプロイとロールバック
+- **自己完結性**: 元の`backend/`と`slackbot/`ディレクトリに依存しない
+- **環境分離**: 環境別設定ファイルによる完全な分離
+- **AWSネイティブ**: CloudFormationベースのインフラ定義
+- **高速デプロイ**: AWS公式ツールによる最適化されたデプロイ
 
 ## トラブルシューティング
 
-### ビルドエラー
+### よくある問題
+
+1. **ビルドエラー**
+
+   ```bash
+   # 依存関係のクリーンインストール
+   cd src/api && rm -rf node_modules package-lock.json && npm install
+   cd ../oauth && rm -rf node_modules package-lock.json && npm install
+   cd ../slackbot && rm -rf node_modules package-lock.json && npm install
+   ```
+
+2. **デプロイエラー**
+
+   ```bash
+   # SAM設定の確認
+   sam validate --profile <PROFILE_NAME>
+
+   # 詳細ログでデプロイ
+   sam deploy --debug --profile <PROFILE_NAME>
+   ```
+
+3. **設定ファイル不存在**
+
+   ```bash
+   cp samconfig.dev.example.toml samconfig.dev.toml
+   ```
+
+4. **ローカル実行エラー**
+
+   ```bash
+   # ビルド後にローカル実行
+   sam build
+   sam local start-api --config-env local --profile <PROFILE_NAME>
+
+   # 環境変数設定の確認
+   cat samconfig.local.toml
+   ```
+
+5. **AWSプロファイルエラー**
+
+   ```bash
+   # 利用可能なプロファイル確認
+   aws configure list-profiles
+   
+   # プロファイル指定での認証テスト
+   aws sts get-caller-identity --profile <PROFILE_NAME>
+   ```
+
+### ログ確認
+
 ```bash
-# 依存関係のクリーンインストール
-cd src/api && rm -rf node_modules package-lock.json && npm install
-cd ../oauth && rm -rf node_modules package-lock.json && npm install
-cd ../slackbot && rm -rf node_modules package-lock.json && npm install
+# Lambda関数のログを確認（プロファイル名を指定）
+sam logs -n ApiFunction --stack-name slack-integration-sam-dev --tail --profile <PROFILE_NAME>
+sam logs -n OAuthFunction --stack-name slack-integration-sam-dev --tail --profile <PROFILE_NAME>
+sam logs -n SlackBotFunction --stack-name slack-integration-sam-dev --tail --profile <PROFILE_NAME>
+
+# 特定期間のログを確認
+sam logs -n ApiFunction --stack-name slack-integration-sam-dev --start-time '10min ago' --profile <PROFILE_NAME>
+
+# CloudFormationイベント確認
+aws cloudformation describe-stack-events --stack-name slack-integration-sam-dev --profile <PROFILE_NAME>
+
+# スタック状態確認
+aws cloudformation describe-stacks --stack-name slack-integration-sam-dev --profile <PROFILE_NAME>
 ```
 
-### デプロイエラー
-```bash
-# SAM設定の確認
-sam validate
+## 🔄 その他の操作
 
-# 詳細ログでデプロイ
-sam deploy --debug
+### 開発用コマンド
+
+```bash
+sam build                        # ビルド
+sam validate --profile <PROFILE_NAME>    # テンプレート検証
+sam sync --watch --profile <PROFILE_NAME> # 開発用同期
 ```
 
-## コマンド
+### ローカル開発
 
 ```bash
-npm run build        # ビルド
-npm run deploy       # デプロイ
-npm run local-start  # ローカルAPI起動
-npm run logs         # ログ確認
-npm run validate     # テンプレート検証
-npm run sync         # 開発用同期
-```
+# ローカル実行用設定ファイルの作成
+cp samconfig.local.example.toml samconfig.local.toml
 
-## ローカル開発
-
-```bash
-# ローカルでAPI Gateway + Lambdaを起動
-sam local start-api
+# ローカルでAPI Gateway + Lambdaを起動（プロファイル指定）
+sam local start-api --config-env local --profile <PROFILE_NAME>
 
 # 特定の関数を直接実行
-sam local invoke ApiFunction --event events/api-event.json
-
-# ログをリアルタイムで監視
-sam logs -n ApiFunction --stack-name slack-integration-sam --tail
+sam local invoke ApiFunction --config-env local --event events/api-event.json --profile <PROFILE_NAME>
 ```
 
-## デバッグ
+### 直接SAMコマンド実行
 
 ```bash
-# 詳細ログでデプロイ
-sam deploy --debug
+sam list --profile <PROFILE_NAME>                    # スタック一覧
+sam validate --profile <PROFILE_NAME>                # テンプレート検証
+sam logs -n ApiFunction --stack-name slack-integration-sam-dev --tail --profile <PROFILE_NAME>  # ログ監視
+```
 
-# CloudFormationイベントを監視
-sam deploy --watch
+### 新しいコードをデプロイする場合
+
+```bash
+sam build && sam deploy --config-env dev --profile <PROFILE_NAME>
+```
+
+### リソースを完全に削除する場合
+
+```bash
+sam delete --config-env dev --profile <PROFILE_NAME>
 ```
