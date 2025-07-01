@@ -1,5 +1,28 @@
+# シークレット・設定ファイル (実際の値を含むため除外)
 /config/secrets.yml
 !/config/secrets.example.yml
+
+# AWS関連設定ファイル (実際の値を含むため除外)
+**/samconfig.toml
+**/cdk.context.json
+# サンプルファイルは含める
+!**/samconfig.example.toml
+!**/cdk.example.json
+
+# フレームワーク関連
 .serverless
 node_modules
 .DS_Store
+
+# AWS関連 build artifacts
+**/.aws-sam/
+**/cdk.out/
+
+# 環境変数ファイル
+.env
+.env.local
+.env.*.local
+
+# IDE設定
+.vscode/settings.json
+.idea/
