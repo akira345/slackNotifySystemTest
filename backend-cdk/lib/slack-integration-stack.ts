@@ -144,10 +144,10 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
     });
 
-    // API Gateway
-    const api = new apigateway.RestApi(this, 'SlackIntegrationApi', {
-      restApiName: 'Slack Integration API',
-      description: 'CDK版 Slack Integration Backend API',
+    // Backend API Gateway
+    const backendApi = new apigateway.RestApi(this, 'BackendApi', {
+      restApiName: 'Slack Integration Backend API',
+      description: 'CDK版 Slack Integration Backend API (Frontend用)',
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
@@ -155,33 +155,47 @@ export class SlackIntegrationStack extends cdk.Stack {
       },
     });
 
-    // API Gateway integrations
+    // SlackBot API Gateway (独立)
+    const slackbotApi = new apigateway.RestApi(this, 'SlackBotApi', {
+      restApiName: 'Slack Integration SlackBot API',
+      description: 'CDK版 Slack Integration SlackBot API (Slack Webhook用)',
+    });
+
+    // Backend API Gateway integrations
     const apiIntegration = new apigateway.LambdaIntegration(apiFunction);
     const oauthIntegration = new apigateway.LambdaIntegration(oauthFunction);
+    
+    // SlackBot API Gateway integration
     const slackbotIntegration = new apigateway.LambdaIntegration(slackbotFunction);
 
-    // API routes
-    api.root.addProxy({
+    // Backend API routes
+    backendApi.root.addProxy({
       defaultIntegration: apiIntegration,
       anyMethod: true,
     });
 
-    // Slack OAuth routes
-    const slackResource = api.root.addResource('slack');
+    // Backend API - Slack OAuth routes
+    const slackResource = backendApi.root.addResource('slack');
     const oauthResource = slackResource.addResource('oauth');
     oauthResource.addProxy({
       defaultIntegration: oauthIntegration,
       anyMethod: true,
     });
 
-    // SlackBot events routes
-    const eventsResource = slackResource.addResource('events');
+    // SlackBot API - Events routes
+    const slackResource2 = slackbotApi.root.addResource('slack');
+    const eventsResource = slackResource2.addResource('events');
     eventsResource.addMethod('POST', slackbotIntegration);
 
     // Outputs
-    new cdk.CfnOutput(this, 'ApiGatewayUrl', {
-      value: api.url,
-      description: 'API Gateway URL',
+    new cdk.CfnOutput(this, 'BackendApiGatewayUrl', {
+      value: backendApi.url,
+      description: 'Backend API Gateway URL (Frontend用)',
+    });
+
+    new cdk.CfnOutput(this, 'SlackBotApiGatewayUrl', {
+      value: slackbotApi.url,
+      description: 'SlackBot API Gateway URL (Slack Webhook用)',
     });
 
     new cdk.CfnOutput(this, 'DynamoDBTableName', {
@@ -190,8 +204,13 @@ export class SlackIntegrationStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'SlackRedirectUri', {
-      value: `${api.url}slack/oauth/callback`,
+      value: `${backendApi.url}slack/oauth/callback`,
       description: 'Slack OAuth Redirect URI (設定に使用)',
+    });
+
+    new cdk.CfnOutput(this, 'SlackEventsUrl', {
+      value: `${slackbotApi.url}slack/events`,
+      description: 'Slack Events Request URL (Slackアプリ設定用)',
     });
   }
 }
