@@ -15,30 +15,19 @@
 ```
 backend-cdk/
 ├── bin/                         # CDKアプリケーションエントリポイント
-│   └── backend-cdk.ts
+│   └── slack-integration.ts
 ├── lib/                         # CDKスタック定義
-│   └── backend-cdk-stack.ts
-├── lambda/                      # Lambda関数コード  
-│   ├── api/                     # メインAPI（旧backend/app.js）
-│   │   ├── app.js
-│   │   └── package.json
-│   ├── oauth/                   # OAuth処理（旧backend/oauth.js）
-│   │   ├── oauth.js
-│   │   └── package.json
-│   ├── slackbot/                # Slackbot（旧slackbot/bot.js）
-│   │   ├── bot.js
-│   │   └── package.json
-│   └── shared/                  # 共通ファイル
-│       └── slack_scopes.js
+│   ├── slack-integration-stack.ts
+│   └── dynamodb.ts
+├── lambda/                      # Lambda関数コード（元のプロジェクトからコピー）
 ├── config/                      # 設定ファイル
-│   ├── cdkconfig.example.json   # 設定例
-│   ├── cdkconfig.dev.example.json
-│   ├── cdkconfig.prod.example.json
-│   ├── cdkconfig.json           # 実際の設定（gitignore対象）
+│   ├── cdkconfig.dev.example.json    # 開発環境設定例
+│   ├── cdkconfig.prod.example.json   # 本番環境設定例
 │   ├── cdkconfig.dev.json       # 開発環境設定（gitignore対象）
 │   └── cdkconfig.prod.json      # 本番環境設定（gitignore対象）
 ├── cdk.json                     # CDK設定
 ├── package.json                 # 依存関係
+├── tsconfig.json               # TypeScript設定
 └── README.md                    # このファイル
 ```
 
@@ -63,7 +52,7 @@ cp config/cdkconfig.prod.example.json config/cdkconfig.prod.json
 # 各ファイルを編集してSlackアプリの実際の情報を設定
 ```
 
-設定ファイル例：
+設定ファイル例（`cdkconfig.dev.json`）：
 
 ```json
 {
@@ -73,7 +62,7 @@ cp config/cdkconfig.prod.example.json config/cdkconfig.prod.json
       "DYNAMODB_TABLE": "SlackIntegrations-dev",
       "DYNAMODB_REGION": "ap-northeast-1",
       "SLACK_CLIENT_ID": "your_slack_client_id_here",
-      "SLACK_CLIENT_SECRET": "your_slack_client_secret_here",
+      "SLACK_CLIENT_SECRET": "your_slack_client_secret_here", 
       "SLACK_SIGNING_SECRET": "your_slack_signing_secret_here",
       "SLACK_REDIRECT_URI": "https://your-dev-api-gateway-url/oauth/callback",
       "SLACK_STATE_SECRET": "your_state_secret_here",
@@ -95,27 +84,27 @@ cdk bootstrap --profile <PROFILE_NAME>
 # TypeScriptのコンパイル
 npm run build
 
-# デプロイ前の差分確認
-cdk diff BackendCdkStack-dev --profile <PROFILE_NAME>
-
 # 開発環境へのデプロイ
-cdk deploy BackendCdkStack-dev --profile <PROFILE_NAME>
+cdk deploy --context env=dev
 
 # 本番環境へのデプロイ
-cdk deploy BackendCdkStack-prod --profile <PROFILE_NAME>
+cdk deploy --context env=prod
+
+# デプロイ前の差分確認
+cdk diff --context env=dev
 
 # スタック削除
-cdk destroy BackendCdkStack-dev --profile <PROFILE_NAME>
+cdk destroy --context env=dev
 ```
 
-#### 例：MyAWSプロファイルを使用する場合
+#### 例：特定のAWSプロファイルを使用する場合
 
 ```bash
 # 開発環境デプロイ
-cdk deploy BackendCdkStack-dev --profile MyAWS
+cdk deploy --context env=dev --profile MyAWS
 
 # 本番環境デプロイ
-cdk deploy BackendCdkStack-prod --profile MyAWS
+cdk deploy --context env=prod --profile MyAWS
 ```
 
 ## 設定管理
@@ -184,7 +173,7 @@ cdk deploy BackendCdkStack-prod --profile MyAWS
    cdk doctor
    
    # 詳細ログでデプロイ
-   cdk deploy --verbose --profile <PROFILE_NAME>
+   cdk deploy --context env=dev --verbose
    ```
 
 3. **設定ファイル不存在**
@@ -197,10 +186,10 @@ cdk deploy BackendCdkStack-prod --profile MyAWS
 
 ```bash
 # CloudWatch Logsでログを確認
-aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/BackendCdkStack" --profile <PROFILE_NAME>
+aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/SlackNotifySystem"
 
 # 特定のLambda関数のログ
-aws logs tail /aws/lambda/BackendCdkStack-dev-ApiFunction --profile <PROFILE_NAME>
+aws logs tail /aws/lambda/SlackNotifySystem-dev-ApiFunction
 ```
 
 ## 開発用コマンド
