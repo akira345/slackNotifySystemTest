@@ -1,0 +1,17 @@
+{
+  "name": "slack-integration-oauth-lambda",
+  "version": "1.0.0",
+  "description": "CDK版 Slack OAuth Lambda関数",
+  "type": "module",
+  "main": "oauth.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.540.0",
+    "@aws-sdk/lib-dynamodb": "^3.540.0",
+    "axios": "^1.6.0",
+    "express": "^5.0.0",
+    "serverless-http": "^3.2.0"
+  }
+}

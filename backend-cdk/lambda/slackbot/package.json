@@ -1,0 +1,15 @@
+{
+  "name": "slack-integration-slackbot-lambda",
+  "version": "1.0.0",
+  "description": "CDK版 SlackBot Lambda関数",
+  "type": "module",
+  "main": "bot.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.540.0",
+    "@aws-sdk/lib-dynamodb": "^3.540.0",
+    "@slack/bolt": "^4.0.0"
+  }
+}
