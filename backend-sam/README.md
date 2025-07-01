@@ -92,29 +92,42 @@ sam deploy --config-env prod --profile MyAWS
 
 ## 設定管理
 
-このSAM版では、設定を環境別のsamconfig.tomlファイルに直接記述して管理します：
+このSAM版では、1つの `samconfig.toml` ファイルに全環境の設定をまとめて管理し、`--config-env` オプションで環境を切り替えます：
 
 ### 設定ファイル構成
 
-- **`samconfig.example.toml`** - デフォルト環境のサンプル
-- **`samconfig.dev.example.toml`** - 開発環境のサンプル  
-- **`samconfig.prod.example.toml`** - 本番環境のサンプル
-- **`samconfig.local.example.toml`** - ローカル実行用のサンプル
-- **`samconfig.toml`** - デフォルト環境（gitignore対象）
-- **`samconfig.dev.toml`** - 開発環境（gitignore対象）
-- **`samconfig.prod.toml`** - 本番環境（gitignore対象）
-- **`samconfig.local.toml`** - ローカル実行用（gitignore対象）
+- **`samconfig.example.toml`** - 全環境のサンプル設定
+- **`samconfig.toml`** - 実際の設定（gitignore対象）
 
 ### セットアップ手順
 
-1. サンプルファイルから実際の設定ファイルをコピー
-2. 各ファイルの`parameter_overrides`セクションに実際のSlack設定を記入
-3. デプロイ時に環境を指定（`sam deploy --config-env dev` など）
+```bash
+# サンプルファイルから実際の設定ファイルをコピー
+cp samconfig.example.toml samconfig.toml
+
+# samconfig.tomlを編集して実際のSlack設定を記入
+```
+
+### 環境別デプロイ
+
+```bash
+# デフォルト環境（[default]セクション）
+sam deploy --profile MyAWS
+
+# 開発環境（[dev]セクション）
+sam deploy --config-env dev --profile MyAWS
+
+# 本番環境（[prod]セクション）  
+sam deploy --config-env prod --profile MyAWS
+
+# ローカル開発（[local]セクション）
+sam local start-api --config-env local --profile MyAWS
+```
 
 ### 特徴
 
-- **シンプル**: 環境変数やAWSサービスに依存しない
-- **環境分離**: 各環境で完全に独立した設定
+- **統合管理**: 1つのファイルで全環境を管理
+- **環境分離**: `--config-env` オプションで環境切り替え
 - **セキュリティ**: 実際の設定ファイルはgitから除外
 - **ポータブル**: どの環境でも同じ方法でデプロイ可能
 
@@ -260,3 +273,57 @@ sam build && sam deploy --config-env dev --profile <PROFILE_NAME>
 ```bash
 sam delete --config-env dev --profile <PROFILE_NAME>
 ```
+
+## AWS SAMのスタック名自動設定について
+
+### 現在の実装方針
+
+AWS SAMでは、Serverless FrameworkやAWS CDKのような完全自動のスタック名生成機能はありませんが、以下の方法で柔軟な管理が可能です：
+
+#### 1. 環境別固定スタック名（現在の実装）
+
+```bash
+# samconfig.tomlで環境別に固定スタック名を定義
+[dev.deploy.parameters]
+stack_name = "slack-notify-system-test-sam-dev"
+
+[prod.deploy.parameters]  
+stack_name = "slack-notify-system-test-sam-prod"
+```
+
+#### 2. コマンドライン実行時の動的指定
+
+```bash
+# 任意のスタック名でデプロイ
+sam deploy --config-env dev --stack-name my-custom-stack-name --profile MyAWS
+
+# ユーザー名を含む個人用スタック
+sam deploy --config-env dev --stack-name slack-sam-dev-$(whoami) --profile MyAWS
+
+# ブランチ名を含むフィーチャースタック  
+sam deploy --config-env dev --stack-name slack-sam-dev-feature-auth --profile MyAWS
+```
+
+#### 3. デプロイスクリプトによる自動化
+
+プロジェクトに含まれる `scripts/deploy.sh` を使用すると、以下のような自動スタック名生成が可能です：
+
+```bash
+# 開発環境（固定スタック名）
+./scripts/deploy.sh dev
+
+# 本番環境（固定スタック名）
+./scripts/deploy.sh prod  
+
+# ローカル環境（ユーザー名付きスタック名）
+./scripts/deploy.sh local
+
+# フィーチャーブランチ用（ブランチ名付きスタック名）
+./scripts/deploy.sh feature my-feature-branch
+```
+
+### ベストプラクティス
+
+- **本番・開発環境**: 固定スタック名で安定運用
+- **個人開発・テスト**: `--stack-name` オプションで動的指定
+- **CI/CD**: スクリプトまたは環境変数を使った自動化

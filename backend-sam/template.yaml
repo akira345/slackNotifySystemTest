@@ -71,8 +71,14 @@ Resources:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SlackIntegrationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt SlackIntegrationsTable.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -94,8 +100,14 @@ Resources:
           SLACK_CLIENT_SECRET: !Ref SlackClientSecret
           SLACK_REDIRECT_URI: !Ref SlackRedirectUri
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SlackIntegrationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:Query
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt SlackIntegrationsTable.Arn
       Events:
         OAuthEvent:
           Type: Api
@@ -119,8 +131,16 @@ Resources:
           SLACK_STATE_SECRET: !Ref SlackStateSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SlackIntegrationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:Query
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt SlackIntegrationsTable.Arn
       Events:
         SlackEvent:
           Type: Api

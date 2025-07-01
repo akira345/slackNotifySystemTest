@@ -1,25 +1,114 @@
+# AWS SAM設定ファイル（サンプル）
+# 
+# このファイルは、AWS SAMアプリケーションのデプロイ・実行設定を定義します。
+# 実際に使用する場合は、このファイルを samconfig.toml としてコピーし、
+# YOUR_*_HERE の部分を実際のSlackアプリケーションの設定値に置き換えてください。
+#
+# 使用方法:
+#   cp samconfig.example.toml samconfig.toml
+#   vi samconfig.toml  # 実際の設定値を記入
+#
+# 環境別実行例:
+#   sam deploy                      # defaultセクションを使用
+#   sam deploy --config-env dev     # devセクションを使用
+#   sam deploy --config-env prod    # prodセクションを使用
+#   sam local start-api --config-env local  # localセクションを使用
+
 version = 0.1
 
 # デフォルト環境（開発用）
-[default]
-[default.deploy]
+# sam deploy（--config-envなし）で使用される設定
 [default.deploy.parameters]
-stack_name = "slack-integration-sam-default"
-s3_bucket = ""  # SAM will create a managed bucket
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
+stack_name = "slack-notify-system-test-sam-dev"  # CloudFormationスタック名
+resolve_s3 = true                                # S3バケットの自動作成・解決
+s3_prefix = "slack-notify-system-test-sam"       # S3オブジェクトのプレフィックス
+region = "ap-northeast-1"                        # デプロイ先AWSリージョン
+profile = "MyAWS"                                # 使用するAWSプロファイル名
+confirm_changeset = true                         # デプロイ前の変更確認を有効化
+capabilities = "CAPABILITY_IAM"                  # IAMリソース作成の許可
 parameter_overrides = [
-  "SlackClientId=YOUR_SLACK_CLIENT_ID_HERE",
-  "SlackClientSecret=YOUR_SLACK_CLIENT_SECRET_HERE",
-  "SlackSigningSecret=YOUR_SLACK_SIGNING_SECRET_HERE",
-  "SlackRedirectUri=https://YOUR_API_URL/slack/oauth/callback",
-  "SlackStateSecret=YOUR_SLACK_STATE_SECRET_HERE",
-  "SlackBotToken=xoxb-YOUR_BOT_TOKEN_HERE",
-  "DynamoDBTableName=SlackIntegrations"
+  "SlackClientId=YOUR_DEV_CLIENT_ID_HERE",       # SlackアプリのClient ID
+  "SlackClientSecret=YOUR_DEV_CLIENT_SECRET_HERE", # SlackアプリのClient Secret
+  "SlackSigningSecret=YOUR_DEV_SIGNING_SECRET_HERE", # Slack Signing Secret（リクエスト検証用）
+  "SlackRedirectUri=https://YOUR_DEV_API_URL/slack/oauth/callback", # OAuth認証後のリダイレクトURI
+  "SlackStateSecret=YOUR_DEV_STATE_SECRET_HERE",  # OAuth State検証用のSecret
+  "SlackBotToken=xoxb-YOUR_DEV_BOT_TOKEN_HERE",   # SlackボットのAPI Token
+  "DynamoDBTableName=SlackIntegrations-dev"       # DynamoDBテーブル名
 ]
-region = "ap-northeast-1"
 
-[default.local_start_api]
-[default.local_start_api.parameters]
-host = "127.0.0.1"
-port = 3000
+# 開発環境
+# sam deploy --config-env dev で使用される設定
+[dev.deploy.parameters]
+stack_name = "slack-notify-system-test-sam-dev"  # CloudFormationスタック名（開発環境用）
+resolve_s3 = true                                # S3バケットの自動作成・解決
+s3_prefix = "slack-notify-system-test-sam"       # S3オブジェクトのプレフィックス
+region = "ap-northeast-1"                        # デプロイ先AWSリージョン
+profile = "MyAWS"                                # 使用するAWSプロファイル名
+confirm_changeset = true                         # デプロイ前の変更確認を有効化（開発環境では推奨）
+capabilities = "CAPABILITY_IAM"                  # IAMリソース作成の許可
+parameter_overrides = [
+  "SlackClientId=YOUR_DEV_CLIENT_ID_HERE",       # 開発環境用SlackアプリのClient ID
+  "SlackClientSecret=YOUR_DEV_CLIENT_SECRET_HERE", # 開発環境用SlackアプリのClient Secret
+  "SlackSigningSecret=YOUR_DEV_SIGNING_SECRET_HERE", # 開発環境用Slack Signing Secret
+  "SlackRedirectUri=https://YOUR_DEV_API_URL/slack/oauth/callback", # 開発環境用OAuth Redirect URI
+  "SlackStateSecret=YOUR_DEV_STATE_SECRET_HERE",  # 開発環境用OAuth State Secret
+  "SlackBotToken=xoxb-YOUR_DEV_BOT_TOKEN_HERE",   # 開発環境用SlackボットToken
+  "DynamoDBTableName=SlackIntegrations-dev"       # 開発環境用DynamoDBテーブル名
+]
+
+# sam local start-api --config-env dev で使用されるローカル実行設定
+[dev.local_start_api.parameters]
+host = "127.0.0.1"  # ローカルAPIのバインドアドレス（開発環境ではローカルのみ）
+port = 3000         # ローカルAPIのポート番号
+
+# 本番環境
+# sam deploy --config-env prod で使用される設定
+[prod.deploy.parameters]
+stack_name = "slack-notify-system-test-sam-prod" # CloudFormationスタック名（本番環境用）
+resolve_s3 = true                                # S3バケットの自動作成・解決
+s3_prefix = "slack-notify-system-test-sam"       # S3オブジェクトのプレフィックス
+region = "ap-northeast-1"                        # デプロイ先AWSリージョン
+profile = "MyAWS"                                # 使用するAWSプロファイル名
+confirm_changeset = false                        # 本番環境では自動実行（確認スキップ）
+capabilities = "CAPABILITY_IAM"                  # IAMリソース作成の許可
+parameter_overrides = [
+  "SlackClientId=YOUR_PROD_CLIENT_ID_HERE",      # 本番環境用SlackアプリのClient ID
+  "SlackClientSecret=YOUR_PROD_CLIENT_SECRET_HERE", # 本番環境用SlackアプリのClient Secret
+  "SlackSigningSecret=YOUR_PROD_SIGNING_SECRET_HERE", # 本番環境用Slack Signing Secret
+  "SlackRedirectUri=https://YOUR_PROD_API_URL/slack/oauth/callback", # 本番環境用OAuth Redirect URI
+  "SlackStateSecret=YOUR_PROD_STATE_SECRET_HERE", # 本番環境用OAuth State Secret
+  "SlackBotToken=xoxb-YOUR_PROD_BOT_TOKEN_HERE",  # 本番環境用SlackボットToken
+  "DynamoDBTableName=SlackIntegrations-prod"      # 本番環境用DynamoDBテーブル名
+]
+
+# sam local start-api --config-env prod で使用されるローカル実行設定
+[prod.local_start_api.parameters]
+host = "0.0.0.0"  # ローカルAPIのバインドアドレス（本番設定では外部からもアクセス可能）
+port = 3000       # ローカルAPIのポート番号
+
+# ローカル開発環境
+# sam local start-api --config-env local で使用される設定
+[local.start_api.parameters]
+host = "127.0.0.1"  # ローカルAPIのバインドアドレス（ローカルのみアクセス可能）
+port = 3000         # ローカルAPIのポート番号
+parameter_overrides = [
+  "SlackClientId=test-client-id",                 # テスト用Client ID（実際のSlackアプリは不要）
+  "SlackClientSecret=test-client-secret",         # テスト用Client Secret
+  "SlackSigningSecret=test-signing-secret",       # テスト用Signing Secret
+  "SlackRedirectUri=http://localhost:3000/slack/oauth/callback", # ローカル用OAuth Redirect URI
+  "SlackStateSecret=test-state-secret",           # テスト用OAuth State Secret
+  "SlackBotToken=xoxb-test-bot-token",            # テスト用ボットToken
+  "DynamoDBTableName=SlackIntegrations-local"     # ローカル用DynamoDBテーブル名
+]
+
+# sam local invoke --config-env local で使用される設定
+[local.start_lambda.parameters]
+parameter_overrides = [
+  "SlackClientId=test-client-id",                 # テスト用Client ID（Lambda単体実行用）
+  "SlackClientSecret=test-client-secret",         # テスト用Client Secret
+  "SlackSigningSecret=test-signing-secret",       # テスト用Signing Secret
+  "SlackRedirectUri=http://localhost:3000/slack/oauth/callback", # ローカル用OAuth Redirect URI
+  "SlackStateSecret=test-state-secret",           # テスト用OAuth State Secret
+  "SlackBotToken=xoxb-test-bot-token",            # テスト用ボットToken
+  "DynamoDBTableName=SlackIntegrations-local"     # ローカル用DynamoDBテーブル名
+]
