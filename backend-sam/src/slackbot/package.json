@@ -10,7 +10,6 @@
   "dependencies": {
     "@slack/bolt": "^3.18.0",
     "@aws-sdk/client-dynamodb": "^3.632.0",
-    "@aws-sdk/lib-dynamodb": "^3.632.0",
-    "js-yaml": "^4.1.0"
+    "@aws-sdk/lib-dynamodb": "^3.632.0"
   }
 }

@@ -8,11 +8,12 @@ s3_bucket = ""  # SAM will create a managed bucket
 confirm_changeset = false  # 本番では自動実行
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = [
-  "SlackClientId=${SLACK_CLIENT_ID_PROD}",
-  "SlackClientSecret=${SLACK_CLIENT_SECRET_PROD}",
-  "SlackSigningSecret=${SLACK_SIGNING_SECRET_PROD}",
-  "SlackRedirectUri=${SLACK_REDIRECT_URI_PROD}",
-  "SlackBotToken=${SLACK_BOT_TOKEN_PROD}",
+  "SlackClientId=YOUR_PROD_CLIENT_ID_HERE",
+  "SlackClientSecret=YOUR_PROD_CLIENT_SECRET_HERE",
+  "SlackSigningSecret=YOUR_PROD_SIGNING_SECRET_HERE",
+  "SlackRedirectUri=https://YOUR_PROD_API_URL/slack/oauth/callback",
+  "SlackStateSecret=YOUR_PROD_STATE_SECRET_HERE",
+  "SlackBotToken=xoxb-YOUR_PROD_BOT_TOKEN_HERE",
   "DynamoDBTableName=SlackIntegrations-prod"
 ]
 region = "ap-northeast-1"

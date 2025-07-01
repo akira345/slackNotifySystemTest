@@ -39,9 +39,18 @@ backend-sam/
 ### 1. 設定ファイルの準備
 
 ```bash
-# 設定ファイルをコピーして編集
-cp config/secrets.example.yml config/secrets.yml
-# secrets.ymlを編集してSlackアプリの情報を設定
+# 使用する環境に応じて設定ファイルをコピー
+
+# デフォルト環境
+cp samconfig.example.toml samconfig.toml
+
+# 開発環境
+cp samconfig.dev.example.toml samconfig.dev.toml
+
+# 本番環境
+cp samconfig.prod.example.toml samconfig.prod.toml
+
+# 各ファイルを編集してSlackアプリの実際の情報を設定
 ```
 
 ### 2. ビルドとデプロイ
@@ -80,65 +89,28 @@ export SLACK_REDIRECT_URI_DEV="https://dev-api-url/slack/oauth/callback"
 export SLACK_BOT_TOKEN_DEV="xoxb-your-dev-bot-token"
 ```
 
-本番環境用：
-```bash
-export SLACK_CLIENT_ID_PROD="your-prod-client-id"
-export SLACK_CLIENT_SECRET_PROD="your-prod-client-secret"
-export SLACK_SIGNING_SECRET_PROD="your-prod-signing-secret"
-export SLACK_REDIRECT_URI_PROD="https://prod-api-url/slack/oauth/callback"
-export SLACK_BOT_TOKEN_PROD="xoxb-your-prod-bot-token"
-```
-
 ## 設定管理
 
-このSAM版では、設定の読み込みを以下の順序で行います：
+このSAM版では、設定を環境別のsamconfig.tomlファイルに直接ハードコードして管理します：
 
-1. **環境変数** (最優先)
-2. **設定ファイル** (`config/secrets.yml`)
-3. **デフォルト値**
+### 設定ファイル構成
+- **`samconfig.example.toml`** - デフォルト環境のサンプル
+- **`samconfig.dev.example.toml`** - 開発環境のサンプル  
+- **`samconfig.prod.example.toml`** - 本番環境のサンプル
+- **`samconfig.toml`** - デフォルト環境（gitignore対象）
+- **`samconfig.dev.toml`** - 開発環境（gitignore対象）
+- **`samconfig.prod.toml`** - 本番環境（gitignore対象）
 
-### 開発環境
-ローカル開発では`config/secrets.yml`ファイルから読み込みます。
+### セットアップ手順
+1. サンプルファイルから実際の設定ファイルをコピー
+2. 各ファイルの`parameter_overrides`セクションに実際のSlack設定を記入
+3. デプロイ時に環境を指定（`./deploy.sh dev` など）
 
-### 本番環境
-
-本番環境では以下の方法でシークレットを管理できます：
-
-#### 方法1: デプロイ時にパラメータ指定 (推奨)
-```bash
-# 環境変数でシークレットを設定
-export SLACK_CLIENT_ID="your-client-id"
-export SLACK_CLIENT_SECRET="your-client-secret"
-export SLACK_SIGNING_SECRET="your-signing-secret"
-export SLACK_BOT_TOKEN="xoxb-your-bot-token"
-export SLACK_REDIRECT_URI="https://your-api-url/slack/oauth/callback"
-
-# デプロイ実行
-sam deploy
-```
-
-#### 方法2: AWS Systems Manager Parameter Store (より安全)
-```bash
-# パラメータを事前にAWSに登録
-aws ssm put-parameter --name "/slack-integration/client-id" --value "your-client-id" --type "String"
-aws ssm put-parameter --name "/slack-integration/client-secret" --value "your-client-secret" --type "SecureString"
-aws ssm put-parameter --name "/slack-integration/signing-secret" --value "your-signing-secret" --type "SecureString"
-aws ssm put-parameter --name "/slack-integration/bot-token" --value "xoxb-your-bot-token" --type "SecureString"
-aws ssm put-parameter --name "/slack-integration/redirect-uri" --value "https://your-api-url/slack/oauth/callback" --type "String"
-
-# デプロイ実行（パラメータは自動で解決される）
-sam deploy
-```
-
-#### 方法3: 直接パラメータ指定
-```bash
-sam deploy \
-  --parameter-overrides \
-  SlackClientId="your-client-id" \
-  SlackClientSecret="your-client-secret" \
-  SlackSigningSecret="your-signing-secret" \
-  SlackBotToken="xoxb-your-bot-token" \
-  SlackRedirectUri="https://your-api-url/slack/oauth/callback"
+### 特徴
+- **シンプル**: 環境変数やAWSサービスに依存しない
+- **環境分離**: 各環境で完全に独立した設定
+- **セキュリティ**: 実際の設定ファイルはgitから除外
+- **ポータブル**: どの環境でも同じ方法でデプロイ可能
 ```
 
 ## 機能

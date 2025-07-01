@@ -1,5 +1,14 @@
 /config/secrets.yml
 !/config/secrets.example.yml
+
+# AWS SAM設定ファイル (実際の値を含むため除外)
+**/samconfig.toml
+**/samconfig.dev.toml
+**/samconfig.prod.toml
+# サンプルファイルは含める
+!**/samconfig.example.toml
+!**/samconfig.*.example.toml
+
 .serverless
 node_modules
 .DS_Store

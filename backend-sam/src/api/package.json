@@ -13,7 +13,6 @@
     "@aws-sdk/client-dynamodb": "^3.632.0",
     "@aws-sdk/lib-dynamodb": "^3.632.0",
     "uuid": "^10.0.0",
-    "@slack/web-api": "^7.3.4",
-    "js-yaml": "^4.1.0"
+    "@slack/web-api": "^7.3.4"
   }
 }
