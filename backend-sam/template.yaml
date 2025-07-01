@@ -132,14 +132,14 @@ Resources:
         SlackEvent:
           Type: Api
           Properties:
-            RestApiId: !Ref SlackIntegrationApi
+            RestApiId: !Ref SlackBotApi
             Path: /slack/events
             Method: POST
       LoggingConfig:
         LogFormat: JSON
         LogGroup: !Ref SlackBotLogGroup
 
-  # API Gateway
+  # Backend API Gateway
   SlackIntegrationApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -151,7 +151,7 @@ Resources:
       DefinitionBody:
         swagger: "2.0"
         info:
-          title: "Slack Integration API"
+          title: "Slack Integration Backend API"
           version: "1.0"
         basePath: "/Prod"
         schemes:
@@ -187,6 +187,21 @@ Resources:
                 passthroughBehavior: "when_no_match"
                 httpMethod: "POST"
                 type: "aws_proxy"
+
+  # SlackBot API Gateway (独立)
+  SlackBotApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "Slack Integration SlackBot API"
+          version: "1.0"
+        basePath: "/Prod"
+        schemes:
+          - "https"
+        paths:
           /slack/events:
             post:
               produces:
@@ -218,9 +233,12 @@ Resources:
       RetentionInDays: 7
 
 Outputs:
-  SlackIntegrationApi:
-    Description: "API Gateway endpoint URL for Prod stage"
+  BackendApi:
+    Description: "Backend API Gateway endpoint URL for Prod stage (Frontend用)"
     Value: !Sub "https://${SlackIntegrationApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  SlackBotApi:
+    Description: "SlackBot API Gateway endpoint URL for Prod stage (Slack Webhook用)"
+    Value: !Sub "https://${SlackBotApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   DynamoDBTableName:
     Description: "DynamoDB table name"
     Value: !Ref SlackIntegrationsTable
@@ -236,3 +254,6 @@ Outputs:
   SlackOAuthRedirectUri:
     Description: "Slack OAuth Redirect URI (設定に使用)"
     Value: !Sub "https://${SlackIntegrationApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/oauth/callback"
+  SlackEventsUrl:
+    Description: "Slack Events Request URL (Slackアプリ設定用)"
+    Value: !Sub "https://${SlackBotApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/events"
