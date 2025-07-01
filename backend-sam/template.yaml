@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Slack連携技術検証用バックエンド (AWS SAM + Node.js 22)
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs22.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DYNAMODB_REGION: !Ref AWS::Region
+
+Parameters:
+  SlackClientId:
+    Type: String
+    Description: Slack Client ID
+    NoEcho: true
+  SlackClientSecret:
+    Type: String
+    Description: Slack Client Secret
+    NoEcho: true
+  SlackSigningSecret:
+    Type: String
+    Description: Slack Signing Secret
+    NoEcho: true
+  SlackRedirectUri:
+    Type: String
+    Description: Slack OAuth Redirect URI
+  DynamoDBTableName:
+    Type: String
+    Default: SlackIntegrations
+    Description: DynamoDB Table Name
+
+Resources:
+  # DynamoDB Table
+  SlackIntegrationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoDBTableName
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  # API Lambda Function
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: app.handler
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackIntegrationsTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SlackIntegrationApi
+            Path: /{proxy+}
+            Method: ANY
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Ref ApiLogGroup
+
+  # OAuth Lambda Function
+  OAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: oauth.handler
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+          SLACK_CLIENT_ID: !Ref SlackClientId
+          SLACK_CLIENT_SECRET: !Ref SlackClientSecret
+          SLACK_REDIRECT_URI: !Ref SlackRedirectUri
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackIntegrationsTable
+      Events:
+        OAuthEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SlackIntegrationApi
+            Path: /slack/oauth/{proxy+}
+            Method: ANY
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Ref OAuthLogGroup
+
+  # API Gateway
+  SlackIntegrationApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "Slack Integration API"
+          version: "1.0"
+        basePath: "/Prod"
+        schemes:
+          - "https"
+        paths:
+          /{proxy+}:
+            x-amazon-apigateway-any-method:
+              produces:
+                - "application/json"
+              parameters:
+                - name: "proxy"
+                  in: "path"
+                  required: true
+                  type: "string"
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+          /slack/oauth/{proxy+}:
+            x-amazon-apigateway-any-method:
+              produces:
+                - "application/json"
+              parameters:
+                - name: "proxy"
+                  in: "path"
+                  required: true
+                  type: "string"
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OAuthFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+
+  # CloudWatch Log Groups
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 7
+
+  OAuthLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OAuthFunction}"
+      RetentionInDays: 7
+
+Outputs:
+  SlackIntegrationApi:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${SlackIntegrationApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  DynamoDBTableName:
+    Description: "DynamoDB table name"
+    Value: !Ref SlackIntegrationsTable
+  ApiFunction:
+    Description: "API Lambda Function ARN"
+    Value: !GetAtt ApiFunction.Arn
+  OAuthFunction:
+    Description: "OAuth Lambda Function ARN"
+    Value: !GetAtt OAuthFunction.Arn
