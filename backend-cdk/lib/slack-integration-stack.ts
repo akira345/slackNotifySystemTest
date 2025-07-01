@@ -69,8 +69,9 @@ export class SlackIntegrationStack extends cdk.Stack {
           image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [
             'bash', '-c',
-            'cp -r /asset-input/* /asset-output/ && cd /asset-output && npm install --production'
+            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
           ],
+          user: 'root',
         },
       }),
       environment: {
@@ -95,8 +96,9 @@ export class SlackIntegrationStack extends cdk.Stack {
           image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [
             'bash', '-c',
-            'cp -r /asset-input/* /asset-output/ && cd /asset-output && npm install --production'
+            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
           ],
+          user: 'root',
         },
       }),
       environment: {
@@ -123,8 +125,9 @@ export class SlackIntegrationStack extends cdk.Stack {
           image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [
             'bash', '-c',
-            'cp -r /asset-input/* /asset-output/ && cd /asset-output && npm install --production'
+            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
           ],
+          user: 'root',
         },
       }),
       environment: {

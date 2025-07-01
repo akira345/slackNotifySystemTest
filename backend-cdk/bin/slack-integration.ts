@@ -7,7 +7,7 @@ const app = new cdk.App();
 
 // 環境設定を取得（デフォルトは dev）
 const environment = app.node.tryGetContext('env') || 'dev';
-const configPath = `./config/cdkconfig.${environment}.json`;
+const configPath = `../config/cdkconfig.${environment}.json`;
 
 // 設定ファイルの読み込み
 let config: any;

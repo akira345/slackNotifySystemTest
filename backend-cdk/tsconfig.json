@@ -26,6 +26,10 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node"
+  },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "*.d.ts", "dist"]
 }

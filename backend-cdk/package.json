@@ -2,35 +2,30 @@
   "name": "slack-integration-backend-cdk",
   "version": "1.0.0",
   "description": "Slack連携技術検証用バックエンド (AWS CDK + Node.js 22)",
-  "type": "module",
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk",
-    "deploy": "cdk deploy",
-    "destroy": "cdk destroy",
-    "diff": "cdk diff",
-    "synth": "cdk synth"
+    "test": "jest"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.540.0",
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "@slack/web-api": "^7.9.2",
-    "express": "^5.0.0",
-    "uuid": "^11.0.0",
     "aws-cdk-lib": "^2.150.0",
     "constructs": "^10.3.0",
-    "js-yaml": "^4.1.0"
+    "express": "^5.0.0",
+    "js-yaml": "^4.1.0",
+    "ts-node": "^10.9.2",
+    "uuid": "^11.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/uuid": "^10.0.0",
-    "@types/js-yaml": "^4.0.9",
     "aws-cdk": "^2.150.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
