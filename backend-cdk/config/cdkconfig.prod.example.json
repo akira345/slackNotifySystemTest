@@ -1,0 +1,15 @@
+{
+  "prod": {
+    "stackName": "SlackNotifySystemProdExample",
+    "environment": {
+      "DYNAMODB_TABLE": "SlackIntegrations-prod-example",
+      "DYNAMODB_REGION": "ap-northeast-1",
+      "SLACK_CLIENT_ID": "YOUR_PROD_CLIENT_ID_HERE",
+      "SLACK_CLIENT_SECRET": "YOUR_PROD_CLIENT_SECRET_HERE",
+      "SLACK_SIGNING_SECRET": "YOUR_PROD_SIGNING_SECRET_HERE",
+      "SLACK_REDIRECT_URI": "https://your-prod-api-url.com/oauth/callback",
+      "SLACK_STATE_SECRET": "YOUR_PROD_STATE_SECRET_HERE",
+      "SLACK_BOT_TOKEN": "YOUR_PROD_BOT_TOKEN_HERE"
+    }
+  }
+}
