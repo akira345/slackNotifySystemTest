@@ -12,6 +12,7 @@
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "axios": "^1.6.0",
     "express": "^5.0.0",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "js-yaml": "^4.1.0"
   }
 }

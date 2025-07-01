@@ -14,10 +14,32 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuidv4 } from "uuid";
 import { WebClient } from "@slack/web-api";
+import fs from 'fs';
+import yaml from 'js-yaml';
 
-// 環境変数から設定を取得
-const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || "SlackIntegrations";
-const DYNAMODB_REGION = process.env.DYNAMODB_REGION || "ap-northeast-1";
+// 機密設定ファイルを読み込む関数
+function loadSecrets() {
+  try {
+    const secretsPath = process.env.LAMBDA_TASK_ROOT 
+      ? '/opt/config/secrets.yml'  // Lambda環境では/optに配置
+      : '../config/secrets.yml';  // ローカル開発環境
+    
+    if (fs.existsSync(secretsPath)) {
+      const fileContents = fs.readFileSync(secretsPath, 'utf8');
+      return yaml.load(fileContents);
+    }
+  } catch (error) {
+    console.warn('secrets.ymlファイルの読み込みに失敗しました。環境変数を使用します。', error.message);
+  }
+  return {};
+}
+
+// 機密設定の読み込み
+const secrets = loadSecrets();
+
+// 環境変数または設定ファイルから設定を取得
+const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || secrets.DYNAMODB_TABLE || "SlackIntegrations";
+const DYNAMODB_REGION = process.env.DYNAMODB_REGION || secrets.DYNAMODB_REGION || "ap-northeast-1";
 
 // DynamoDBクライアント初期化（v3）
 const ddbClient = new DynamoDBClient({ region: DYNAMODB_REGION });
