@@ -21,3 +21,18 @@ backend-cdk/config/cdkconfig.prod.json
 !backend-cdk/config/cdkconfig.example.json
 !backend-cdk/config/cdkconfig.dev.example.json
 !backend-cdk/config/cdkconfig.prod.example.json
+
+# CDK生成ファイル・ディレクトリ
+backend-cdk/cdk.out/
+backend-cdk/*.d.ts
+backend-cdk/lib/*.js
+backend-cdk/lib/*.d.ts
+backend-cdk/bin/*.js
+backend-cdk/bin/*.d.ts
+
+# Lambda関数のnode_modules（開発中に生成される場合）
+backend-cdk/lambda/*/node_modules/
+# package-lock.jsonは開発とbundling用に必要なので追跡する
+
+# TypeScript生成ファイル
+backend-cdk/*.tsbuildinfo
