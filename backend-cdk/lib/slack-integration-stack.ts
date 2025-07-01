@@ -5,31 +5,30 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
-import * as fs from 'fs';
-import * as yaml from 'js-yaml';
 
-// 機密設定ファイルを読み込む関数
-function loadSecrets(): any {
-  try {
-    const secretsPath = './config/secrets.yml';
-    const fileContents = fs.readFileSync(secretsPath, 'utf8');
-    return yaml.load(fileContents);
-  } catch (error) {
-    console.error('secrets.ymlファイルが見つかりません。config/secrets.example.ymlをコピーして作成してください。');
-    process.exit(1);
-  }
+export interface SlackIntegrationStackProps extends cdk.StackProps {
+  environment: string;
+  config: {
+    DYNAMODB_TABLE: string;
+    DYNAMODB_REGION: string;
+    SLACK_CLIENT_ID: string;
+    SLACK_CLIENT_SECRET: string;
+    SLACK_SIGNING_SECRET: string;
+    SLACK_REDIRECT_URI: string;
+    SLACK_STATE_SECRET: string;
+    SLACK_BOT_TOKEN: string;
+  };
 }
 
 export class SlackIntegrationStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: SlackIntegrationStackProps) {
     super(scope, id, props);
 
-    // 機密設定ファイルの読み込み
-    const secrets = loadSecrets();
+    const { config } = props;
 
     // DynamoDB Table
     const table = new dynamodb.Table(this, 'SlackIntegrationsTable', {
-      tableName: secrets.DYNAMODB_TABLE || 'SlackIntegrations',
+      tableName: config.DYNAMODB_TABLE || 'SlackIntegrations',
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -76,8 +75,8 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
-        SLACK_SIGNING_SECRET: secrets.SLACK_SIGNING_SECRET || '',
+        DYNAMODB_REGION: config.DYNAMODB_REGION,
+        SLACK_SIGNING_SECRET: config.SLACK_SIGNING_SECRET,
       },
       role: lambdaRole,
       logGroup: new logs.LogGroup(this, 'ApiLogGroup', {
@@ -102,10 +101,10 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
-        SLACK_CLIENT_ID: secrets.SLACK_CLIENT_ID || '',
-        SLACK_CLIENT_SECRET: secrets.SLACK_CLIENT_SECRET || '',
-        SLACK_REDIRECT_URI: secrets.SLACK_REDIRECT_URI || '',
+        DYNAMODB_REGION: config.DYNAMODB_REGION,
+        SLACK_CLIENT_ID: config.SLACK_CLIENT_ID,
+        SLACK_CLIENT_SECRET: config.SLACK_CLIENT_SECRET,
+        SLACK_REDIRECT_URI: config.SLACK_REDIRECT_URI,
       },
       role: lambdaRole,
       logGroup: new logs.LogGroup(this, 'OAuthLogGroup', {
@@ -130,12 +129,12 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
-        SLACK_CLIENT_ID: secrets.SLACK_CLIENT_ID || '',
-        SLACK_CLIENT_SECRET: secrets.SLACK_CLIENT_SECRET || '',
-        SLACK_SIGNING_SECRET: secrets.SLACK_SIGNING_SECRET || '',
-        SLACK_STATE_SECRET: secrets.SLACK_STATE_SECRET || '',
-        SLACK_BOT_TOKEN: secrets.SLACK_BOT_TOKEN || '',
+        DYNAMODB_REGION: config.DYNAMODB_REGION,
+        SLACK_CLIENT_ID: config.SLACK_CLIENT_ID,
+        SLACK_CLIENT_SECRET: config.SLACK_CLIENT_SECRET,
+        SLACK_SIGNING_SECRET: config.SLACK_SIGNING_SECRET,
+        SLACK_STATE_SECRET: config.SLACK_STATE_SECRET,
+        SLACK_BOT_TOKEN: config.SLACK_BOT_TOKEN,
       },
       role: lambdaRole,
       logGroup: new logs.LogGroup(this, 'SlackBotLogGroup', {

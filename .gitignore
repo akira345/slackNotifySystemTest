@@ -3,3 +3,21 @@
 .serverless
 node_modules
 .DS_Store
+
+# SAM環境別設定ファイル（実際の値を含むもの）を除外
+backend-sam/samconfig.toml
+backend-sam/samconfig.dev.toml
+backend-sam/samconfig.prod.toml
+# exampleファイルは除外しない
+!backend-sam/samconfig.example.toml
+!backend-sam/samconfig.dev.example.toml
+!backend-sam/samconfig.prod.example.toml
+
+# CDK環境別設定ファイル（実際の値を含むもの）を除外
+backend-cdk/config/cdkconfig.json
+backend-cdk/config/cdkconfig.dev.json
+backend-cdk/config/cdkconfig.prod.json
+# exampleファイルは除外しない
+!backend-cdk/config/cdkconfig.example.json
+!backend-cdk/config/cdkconfig.dev.example.json
+!backend-cdk/config/cdkconfig.prod.example.json
