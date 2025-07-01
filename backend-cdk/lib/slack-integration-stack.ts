@@ -76,7 +76,7 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: this.region,
+        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
         SLACK_SIGNING_SECRET: secrets.SLACK_SIGNING_SECRET || '',
       },
       role: lambdaRole,
@@ -102,7 +102,7 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: this.region,
+        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
         SLACK_CLIENT_ID: secrets.SLACK_CLIENT_ID || '',
         SLACK_CLIENT_SECRET: secrets.SLACK_CLIENT_SECRET || '',
         SLACK_REDIRECT_URI: secrets.SLACK_REDIRECT_URI || '',
@@ -130,7 +130,7 @@ export class SlackIntegrationStack extends cdk.Stack {
       }),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        DYNAMODB_REGION: this.region,
+        DYNAMODB_REGION: props?.env?.region || 'ap-northeast-1',
         SLACK_CLIENT_ID: secrets.SLACK_CLIENT_ID || '',
         SLACK_CLIENT_SECRET: secrets.SLACK_CLIENT_SECRET || '',
         SLACK_SIGNING_SECRET: secrets.SLACK_SIGNING_SECRET || '',
