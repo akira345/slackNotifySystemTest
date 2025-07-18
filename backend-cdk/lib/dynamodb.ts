@@ -1,20 +1,18 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
-export interface DynamoStackProps extends cdk.StackProps {
+export interface DataStackProps extends cdk.StackProps {
   tableName: string;
   projectName: string;
   environment: string;
 }
 
-export class DynamoStack extends Construct {
+export class DataStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
-  public readonly lambdaRole: iam.Role;
 
-  constructor(scope: Construct, id: string, props: DynamoStackProps) {
-    super(scope, id);
+  constructor(scope: Construct, id: string, props: DataStackProps) {
+    super(scope, id, props);
 
     // DynamoDB テーブル作成
     this.table = new dynamodb.Table(this, 'SlackIntegrationsTable', {
@@ -22,39 +20,32 @@ export class DynamoStack extends Construct {
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // 開発用設定
-      pointInTimeRecovery: false, // 開発用設定
-    });
-
-    // Lambda実行用IAMロール
-    this.lambdaRole = new iam.Role(this, 'LambdaExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
-      ],
-      inlinePolicies: {
-        DynamoDBAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: [
-                'dynamodb:Query',
-                'dynamodb:GetItem',
-                'dynamodb:PutItem',
-                'dynamodb:DeleteItem',
-                'dynamodb:Scan',
-              ],
-              resources: [this.table.tableArn],
-            }),
-          ],
-        }),
-      },
+      
+      // 環境に応じた削除保護設定
+      removalPolicy: props.environment === 'prod' 
+        ? cdk.RemovalPolicy.RETAIN 
+        : cdk.RemovalPolicy.DESTROY,
+      
+      // 本番環境ではバックアップ有効化
+      pointInTimeRecovery: props.environment === 'prod',
     });
 
     // タグ設定
     cdk.Tags.of(this.table).add('Name', `${props.projectName}-dynamodb-table`);
     cdk.Tags.of(this.table).add('Environment', props.environment);
-    cdk.Tags.of(this.lambdaRole).add('Name', `${props.projectName}-lambda-role`);
-    cdk.Tags.of(this.lambdaRole).add('Environment', props.environment);
+    cdk.Tags.of(this.table).add('Component', 'Data');
+
+    // Cross-Stack Reference用の出力
+    new cdk.CfnOutput(this, 'TableName', {
+      value: this.table.tableName,
+      exportName: `${props.projectName}-${props.environment}-table-name`,
+      description: 'DynamoDB Table Name for cross-stack reference',
+    });
+
+    new cdk.CfnOutput(this, 'TableArn', {
+      value: this.table.tableArn,
+      exportName: `${props.projectName}-${props.environment}-table-arn`,
+      description: 'DynamoDB Table ARN for cross-stack reference',
+    });
   }
 }
