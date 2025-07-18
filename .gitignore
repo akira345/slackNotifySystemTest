@@ -22,6 +22,7 @@ node_modules
 # AWS関連 build artifacts
 **/.aws-sam/
 **/cdk.out/
+**/dist/
 backend-cdk/*.d.ts
 backend-cdk/lib/*.js
 backend-cdk/lib/*.d.ts

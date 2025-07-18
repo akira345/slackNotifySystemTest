@@ -1,8 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Runtime, Architecture } from 'aws-cdk-lib/aws-lambda';
+import { LambdaRestApi, RestApi, LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
+import { OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { PolicyStatement, Effect, ManagedPolicy, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface ApiStackProps extends cdk.StackProps {
@@ -24,83 +28,79 @@ export interface ApiStackProps extends cdk.StackProps {
 }
 
 export class ApiStack extends cdk.Stack {
-  public readonly backendApi: apigateway.RestApi;
-  public readonly slackbotApi: apigateway.RestApi;
+  public readonly backendApi: LambdaRestApi;
+  public readonly slackbotApi: LambdaRestApi;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
     const { config } = props;
 
-    // Lambda execution role with DynamoDB permissions
+    // Lambda execution role with DynamoDB permissions (Optimized)
     const lambdaRole = new iam.Role(this, 'LambdaExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+        ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
       ],
-      inlinePolicies: {
-        DynamoDBAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: [
-                'dynamodb:Query',
-                'dynamodb:GetItem',
-                'dynamodb:PutItem',
-                'dynamodb:DeleteItem',
-                'dynamodb:Scan',
-              ],
-              resources: [
-                props.tableArn,
-                `${props.tableArn}/index/*`, // GSI対応
-              ],
-            }),
-          ],
-        }),
-      },
     });
 
-    // API Lambda Function
-    const apiFunction = new lambda.Function(this, 'ApiFunction', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'app.handler',
-      code: lambda.Code.fromAsset('./lambda/api', {
-        bundling: {
-          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
-          command: [
-            'bash', '-c',
-            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
-          ],
-          user: 'root',
-        },
-      }),
+    // DynamoDB access policy with simplified syntax
+    const dynamoPolicy = new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: [
+        'dynamodb:Query',
+        'dynamodb:GetItem',
+        'dynamodb:PutItem',
+        'dynamodb:DeleteItem',
+        'dynamodb:Scan',
+      ],
+      resources: [
+        props.tableArn,
+        `${props.tableArn}/index/*`, // GSI対応
+      ],
+    });
+
+    lambdaRole.addToPolicy(dynamoPolicy);
+
+    // Reusable Log Group factory
+    const createLogGroup = (name: string) => new LogGroup(this, `${name}LogGroup`, {
+      logGroupName: `/aws/lambda/${props.projectName}-${props.environment}-${name}`,
+      retention: RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // API Lambda Function with NodejsFunction
+    const apiFunction = new NodejsFunction(this, 'ApiFunction', {
+      entry: './lambda/api/app.js',
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.X86_64,
       environment: {
         DYNAMODB_TABLE: props.tableName,
         DYNAMODB_REGION: config.DYNAMODB_REGION,
         SLACK_SIGNING_SECRET: config.SLACK_SIGNING_SECRET,
       },
       role: lambdaRole,
-      logGroup: new logs.LogGroup(this, 'ApiLogGroup', {
-        logGroupName: `/aws/lambda/${props.projectName}-${props.environment}-api`,
-        retention: logs.RetentionDays.ONE_WEEK,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
+      logGroup: createLogGroup('api'),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: 'node22',
+        format: OutputFormat.ESM,
+        esbuildArgs: {
+          '--platform': 'node',
+          '--tree-shaking': true,
+          '--keep-names': true,
+        },
+        // AWS SDK v3は自動で外部化される
+        externalModules: ['@aws-sdk/*'],
+      },
     });
 
-    // OAuth Lambda Function
-    const oauthFunction = new lambda.Function(this, 'OAuthFunction', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'oauth.handler',
-      code: lambda.Code.fromAsset('./lambda/oauth', {
-        bundling: {
-          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
-          command: [
-            'bash', '-c',
-            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
-          ],
-          user: 'root',
-        },
-      }),
+    // OAuth Lambda Function with NodejsFunction
+    const oauthFunction = new NodejsFunction(this, 'OAuthFunction', {
+      entry: './lambda/oauth/oauth.js',
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.X86_64,
       environment: {
         DYNAMODB_TABLE: props.tableName,
         DYNAMODB_REGION: config.DYNAMODB_REGION,
@@ -109,27 +109,26 @@ export class ApiStack extends cdk.Stack {
         SLACK_REDIRECT_URI: config.SLACK_REDIRECT_URI,
       },
       role: lambdaRole,
-      logGroup: new logs.LogGroup(this, 'OAuthLogGroup', {
-        logGroupName: `/aws/lambda/${props.projectName}-${props.environment}-oauth`,
-        retention: logs.RetentionDays.ONE_WEEK,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
+      logGroup: createLogGroup('oauth'),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: 'node22',
+        format: OutputFormat.ESM,
+        esbuildArgs: {
+          '--platform': 'node',
+          '--tree-shaking': true,
+          '--keep-names': true,
+        },
+        externalModules: ['@aws-sdk/*'],
+      },
     });
 
-    // SlackBot Lambda Function
-    const slackbotFunction = new lambda.Function(this, 'SlackBotFunction', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'bot.handler',
-      code: lambda.Code.fromAsset('./lambda/slackbot', {
-        bundling: {
-          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
-          command: [
-            'bash', '-c',
-            'cp -au . /tmp/staging && cd /tmp/staging && npm ci --omit=dev && cp -au . /asset-output/'
-          ],
-          user: 'root',
-        },
-      }),
+    // SlackBot Lambda Function with NodejsFunction
+    const slackbotFunction = new NodejsFunction(this, 'SlackBotFunction', {
+      entry: './lambda/slackbot/bot.js',
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.X86_64,
       environment: {
         DYNAMODB_TABLE: props.tableName,
         DYNAMODB_REGION: config.DYNAMODB_REGION,
@@ -140,70 +139,74 @@ export class ApiStack extends cdk.Stack {
         SLACK_BOT_TOKEN: config.SLACK_BOT_TOKEN,
       },
       role: lambdaRole,
-      logGroup: new logs.LogGroup(this, 'SlackBotLogGroup', {
-        logGroupName: `/aws/lambda/${props.projectName}-${props.environment}-slackbot`,
-        retention: logs.RetentionDays.ONE_WEEK,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
+      logGroup: createLogGroup('slackbot'),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: 'node22',
+        format: OutputFormat.ESM,
+        esbuildArgs: {
+          '--platform': 'node',
+          '--tree-shaking': true,
+          '--keep-names': true,
+        },
+        externalModules: ['@aws-sdk/*'],
+      },
     });
 
-    // Backend API Gateway
-    this.backendApi = new apigateway.RestApi(this, 'BackendApi', {
+    // Backend API Gateway with LambdaRestApi high-level construct
+    this.backendApi = new LambdaRestApi(this, 'BackendApi', {
+      handler: apiFunction,
       restApiName: `${props.projectName}-${props.environment}-backend-api`,
       description: 'Slack Integration Backend API (Frontend用)',
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
 
-    // SlackBot API Gateway (独立)
-    this.slackbotApi = new apigateway.RestApi(this, 'SlackBotApi', {
+    // SlackBot API Gateway with LambdaRestApi high-level construct (独立)
+    this.slackbotApi = new LambdaRestApi(this, 'SlackBotApi', {
+      handler: slackbotFunction,
       restApiName: `${props.projectName}-${props.environment}-slackbot-api`,
       description: 'Slack Integration SlackBot API (Slack Webhook用)',
     });
 
-    // Backend API Gateway integrations
-    const apiIntegration = new apigateway.LambdaIntegration(apiFunction);
-    const oauthIntegration = new apigateway.LambdaIntegration(oauthFunction);
-    
-    // SlackBot API Gateway integration
-    const slackbotIntegration = new apigateway.LambdaIntegration(slackbotFunction);
+    // 注意: LambdaRestApiは自動的にAPIGateway統合を設定するため、
+    // 手動でのルート設定やIntegrationの定義は不要です
 
-    // Backend API routes
-    this.backendApi.root.addProxy({
-      defaultIntegration: apiIntegration,
-      anyMethod: true,
+    // OAuth用の追加APIを作成 (異なるLambda関数のため)
+    const oauthApi = new LambdaRestApi(this, 'OAuthApi', {
+      handler: oauthFunction,
+      restApiName: `${props.projectName}-${props.environment}-oauth-api`,
+      description: 'Slack OAuth API',
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', 'Authorization'],
+      },
     });
-
-    // Backend API - Slack OAuth routes
-    const slackResource = this.backendApi.root.addResource('slack');
-    const oauthResource = slackResource.addResource('oauth');
-    oauthResource.addProxy({
-      defaultIntegration: oauthIntegration,
-      anyMethod: true,
-    });
-
-    // SlackBot API - Events routes
-    const slackResource2 = this.slackbotApi.root.addResource('slack');
-    const eventsResource = slackResource2.addResource('events');
-    eventsResource.addMethod('POST', slackbotIntegration);
 
     // タグ設定
     cdk.Tags.of(this).add('Component', 'API');
     cdk.Tags.of(this).add('Environment', props.environment);
     cdk.Tags.of(this).add('Project', props.projectName);
 
-    // Outputs
-    new cdk.CfnOutput(this, 'BackendApiGatewayUrl', {
+        // Outputs
+    new cdk.CfnOutput(this, 'BackendApiUrl', {
       value: this.backendApi.url,
-      description: 'Backend API Gateway URL (Frontend用)',
+      description: 'Backend API Gateway URL',
     });
 
-    new cdk.CfnOutput(this, 'SlackBotApiGatewayUrl', {
+    new cdk.CfnOutput(this, 'OAuthApiUrl', {
+      value: oauthApi.url,
+      description: 'OAuth API Gateway URL',
+    });
+
+    new cdk.CfnOutput(this, 'SlackBotApiUrl', {
       value: this.slackbotApi.url,
-      description: 'SlackBot API Gateway URL (Slack Webhook用)',
+      description: 'SlackBot API Gateway URL',
     });
 
     new cdk.CfnOutput(this, 'SlackRedirectUri', {
