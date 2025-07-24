@@ -1,19 +1,19 @@
 {
   "name": "slack-integration-slackbot",
   "version": "1.0.0",
-  "description": "Slack連携技術検証用SlackBot (Bolt, AWS Lambda, Serverless Framework v3)",
+  "description": "Slack連携技術検証用SlackBot (Bolt, AWS Lambda, Serverless Framework v4)",
   "main": "bot.js",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.540.0",
-    "@aws-sdk/lib-dynamodb": "^3.540.0",
-    "@slack/bolt": "^4.0.0"
+    "@aws-sdk/client-dynamodb": "^3.848.0",
+    "@aws-sdk/lib-dynamodb": "^3.850.0",
+    "@slack/bolt": "^4.4.0"
   },
   "devDependencies": {
-    "serverless": "^3.38.0",
+    "serverless": "^4.17.1",
     "serverless-iam-roles-per-function": "^3.2.0"
   }
 }

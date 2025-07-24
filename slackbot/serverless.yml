@@ -1,5 +1,9 @@
 service: slack-integration-slackbot
-frameworkVersion: "3"
+frameworkVersion: "4"
+
+# ダッシュボード機能を無効化（AWS Profile使用）
+console: false
+
 provider:
   name: aws
   runtime: nodejs22.x
@@ -37,4 +41,4 @@ functions:
       - http:
           path: slack/events
           method: post
-          cord: true
+          cors: true
