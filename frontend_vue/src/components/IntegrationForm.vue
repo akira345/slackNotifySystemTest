@@ -3,6 +3,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { fetchSlackWorkspaces, fetchSlackChannels, fetchIntegrationDetail, updateIntegration, fetchSlackOAuthUrl, addIntegration } from '../api';
+
 // --- ワークスペース追加（OAuth認可） ---
 async function handleAddWorkspace() {
   try {
@@ -21,7 +22,9 @@ const props = defineProps({
   ProjectId: String,
   mode: String
 });
+
 const isEdit = props.mode === 'edit';
+ // 通知イベント一覧
 const NOTIFICATION_EVENTS = [
   '課題の追加',
   '課題の更新',
@@ -30,21 +33,24 @@ const NOTIFICATION_EVENTS = [
   '課題をまとめて更新',
   'お知らせの追加',
 ];
+
 const route = useRoute();
 const router = useRouter();
-const slackWorkspaceId = ref('');
-const slackChannelId = ref('');
-const description = ref('');
-const notificationEvents = ref([]);
 
-const workspaces = ref([]);
-const channels = ref([]);
-const loading = ref(false);
-const error = ref(null);
-const done = ref(false);
-const workspaceLoading = ref(false);
-const channelLoading = ref(false);
-const disabled = ref(false);
+// Slack連携の各種状態バインド
+const slackWorkspaceId = ref(''); // SlackワークスペースID
+const slackChannelId = ref(''); // SlackチャネルID
+const description = ref(''); // 説明
+const notificationEvents = ref([]); // 通知イベント
+
+const workspaces = ref([]); // ワークスペース一覧
+const channels = ref([]); // Slackチャネル一覧
+const loading = ref(false); // ローディング状態
+const error = ref(null); // エラーメッセージ
+const done = ref(false); // 処理完了フラグ
+const workspaceLoading = ref(false); // ワークスペースローディング状態
+const channelLoading = ref(false); // チャネルローディング状態
+const disabled = ref(false); // フォーム送信ボタンの無効化状態
 
 // --- Util: ワークスペース名取得 ---
 function getWorkspaceName(id) {
@@ -52,13 +58,17 @@ function getWorkspaceName(id) {
   return ws ? ws.name : id;
 }
 // --- Util: チャンネル名取得 ---
+
+/**
+ * チャンネル名を取得する
+ * @param id チャンネルID
+ */
 function getChannelName(id) {
   const ch = channels.value.find(ch => ch.id === id);
   return ch ? ch.name : id;
 }
 
 // --- 初期データ取得 ---
-
 onMounted(async () => {
   workspaceLoading.value = true;
   workspaces.value = await fetchSlackWorkspaces();

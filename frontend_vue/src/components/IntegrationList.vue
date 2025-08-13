@@ -9,11 +9,14 @@ const props = defineProps({
 });
 
 const router = useRouter();
-const integrations = ref([]);
-const loading = ref(true);
-const done = ref(false);
-const error = ref(null);
+const integrations = ref([]); // Slack連携の一覧
+const loading = ref(true); // ローディング状態
+const done = ref(false); // 処理完了フラグ
+const error = ref(null); // 
 
+/**
+ * Slack連携の一覧を取得する
+ */
 async function loadIntegrations() {
   loading.value = true;
   done.value = false;
@@ -29,6 +32,7 @@ async function loadIntegrations() {
   }
 }
 
+// 初期データ取得
 onMounted(loadIntegrations);
 
 function editIntegration(id) {
