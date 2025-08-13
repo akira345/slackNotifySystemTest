@@ -54,4 +54,15 @@ npm run build
 
 ---
 
+
+---
+
+## 補足: npm run dev と npm run preview の違い
+
+- `npm run dev` は開発用サーバー（ホットリロード・開発向け最適化）です。
+- `npm run preview` は `npm run build` で生成された本番ビルド（distディレクトリ）をローカルサーバでプレビューします。
+- 本番環境と同じ挙動をローカルで確認したい場合は `npm run preview` を使ってください。
+
+---
+
 この手順でS3等の静的ホスティング環境にVue3アプリをデプロイできます。

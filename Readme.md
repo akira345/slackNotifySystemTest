@@ -19,6 +19,11 @@ Slackの設定内容等については [こちら](https://junkbox.wicurio.com/i
     ```env
     REACT_APP_API_BASE_URL=https://example.execute-api.ap-northeast-1.amazonaws.com/dev/
     ```
+  * 開発サーバ起動手順:
+    1. ディレクトリ移動: `cd frontend`
+    2. 依存パッケージインストール: `npm install`
+    3. 開発サーバ起動: `npm start`
+       - 通常 http://localhost:3000 でアクセスできます。
 * frontend_vue
   * Vue3 + Vite版のフロントエンドです。
   * `frontend_vue/.env.sample` を `.env` にコピーし、`VITE_API_BASE_URL` にAPI GatewayのURLを記載してください。
@@ -26,6 +31,11 @@ Slackの設定内容等については [こちら](https://junkbox.wicurio.com/i
     ```env
     VITE_API_BASE_URL=https://example.execute-api.ap-northeast-1.amazonaws.com/dev/
     ```
+  * 開発サーバ起動手順:
+    1. ディレクトリ移動: `cd frontend_vue`
+    2. 依存パッケージインストール: `npm install`
+    3. 開発サーバ起動: `npm run dev`
+       - 通常 http://localhost:5173 でアクセスできます。
   * S3等へのデプロイ手順は `DOC/deploy_static_hosting.md` を参照してください。
 * slackbot
   * Slackボットアプリの本体です。
