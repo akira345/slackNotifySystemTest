@@ -4,9 +4,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import IntegrationList from './components/IntegrationList';
 import IntegrationForm from './components/IntegrationForm';
-// APIベースURL
-// 注意: 実際のAPIベースURLは環境に応じて変更してください。
-const API_BASE_URL = 'https://example.execute-api.ap-northeast-1.amazonaws.com/dev/';
+// APIベースURL（.envのREACT_APP_API_BASE_URLを利用、なければデフォルト値）
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://example.execute-api.ap-northeast-1.amazonaws.com/dev/';
 
 // API呼び出し用ラッパー関数
 export async function fetchWithSpinnerAndDialog(url, options, setLoading, setError, setDone) {
