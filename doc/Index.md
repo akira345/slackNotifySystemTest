@@ -4,11 +4,13 @@
 
 
 
+
 ## 目次
 
 - [ReactとVueJSのコンポーネント詳細比較（IntegrationForm/IntegrationList含む）](./react_vue_component_comparison.md)
 - [全体構成と考え方の違い](./structure.md)
 - [ルーティングの移行(App.vue, router.js)](./routing.md)
+- [静的ホスティング（S3等）へのデプロイ手順](./deploy_static_hosting.md)
 
 
 各項目の詳細はリンク先を参照してください。
