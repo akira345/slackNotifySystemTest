@@ -1,32 +1,37 @@
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchIntegrations, deleteIntegration as apiDeleteIntegration, testIntegration as apiTestIntegration } from '../api';
+import { fetchIntegrations, deleteIntegration as apiDeleteIntegration, testIntegration as apiTestIntegration } from '../api.js';
 
-const props = defineProps({
-  ProjectId: String
-});
+const props = defineProps<{
+  ProjectId: string;
+}>();
 
 const router = useRouter();
-const integrations = ref([]); // Slack連携の一覧
-const loading = ref(true); // ローディング状態
-const done = ref(false); // 処理完了フラグ
-const error = ref(null); // 
+import type { Integration } from '../api';
+const integrations = ref<Integration[]>([]); // Slack連携の一覧
+const loading = ref<boolean>(true); // ローディング状態
+const done = ref<boolean>(false); // 処理完了フラグ
+const error = ref<string|null>(null); // 
 
 /**
  * Slack連携の一覧を取得する
  */
-async function loadIntegrations() {
+async function loadIntegrations(): Promise<void> {
   loading.value = true;
   done.value = false;
   error.value = null;
   try {
     integrations.value = await fetchIntegrations(props.ProjectId);
     done.value = true;
-  } catch (e) {
+  } catch (e: unknown) {
     integrations.value = [];
-    error.value = e.message || 'データ取得エラー';
+    if (typeof e === 'object' && e && 'message' in e) {
+      error.value = (e as { message?: string }).message || 'データ取得エラー';
+    } else {
+      error.value = 'データ取得エラー';
+    }
   } finally {
     loading.value = false;
   }
@@ -35,12 +40,12 @@ async function loadIntegrations() {
 // 初期データ取得
 onMounted(loadIntegrations);
 
-function editIntegration(id) {
+function editIntegration(id: string): void {
   router.push(`/integrations/${id}/edit`);
 }
 
 // 削除API呼び出し
-async function deleteIntegration(id) {
+async function deleteIntegration(id: string): Promise<void> {
   if (!window.confirm('本当に削除しますか?')) return;
   error.value = null;
   try {
@@ -49,16 +54,21 @@ async function deleteIntegration(id) {
     await apiDeleteIntegration(props.ProjectId, id);
     await loadIntegrations();
     done.value = true;
-  } catch (e) {
-    error.value = e.message || '削除に失敗しました';
-    window.alert('削除に失敗しました: ' + (e.message || 'エラー'));
+  } catch (e: unknown) {
+    if (typeof e === 'object' && e && 'message' in e) {
+      error.value = (e as { message?: string }).message || '削除に失敗しました';
+      window.alert('削除に失敗しました: ' + ((e as { message?: string }).message || 'エラー'));
+    } else {
+      error.value = '削除に失敗しました';
+      window.alert('削除に失敗しました: エラー');
+    }
   } finally {
     loading.value = false;
   }
 }
 
 // テスト送信API呼び出し
-async function testIntegration(id) {
+async function testIntegration(id: string): Promise<void> {
   error.value = null;
   try {
     loading.value = true;
@@ -66,9 +76,14 @@ async function testIntegration(id) {
     await apiTestIntegration(props.ProjectId, id);
     window.alert('テストメッセージを送信しました');
     done.value = true;
-  } catch (e) {
-    error.value = e.message || 'テストメッセージ送信に失敗しました';
-    window.alert('テストメッセージ送信に失敗しました: ' + (e.message || 'エラー'));
+  } catch (e: unknown) {
+    if (typeof e === 'object' && e && 'message' in e) {
+      error.value = (e as { message?: string }).message || 'テストメッセージ送信に失敗しました';
+      window.alert('テストメッセージ送信に失敗しました: ' + ((e as { message?: string }).message || 'エラー'));
+    } else {
+      error.value = 'テストメッセージ送信に失敗しました';
+      window.alert('テストメッセージ送信に失敗しました: エラー');
+    }
   } finally {
     loading.value = false;
   }

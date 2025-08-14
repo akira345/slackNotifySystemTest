@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 // ルーティングビューを表示するための設定
 </script>
 

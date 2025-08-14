@@ -1,8 +1,9 @@
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { fetchSlackWorkspaces, fetchSlackChannels, fetchIntegrationDetail, updateIntegration, fetchSlackOAuthUrl, addIntegration } from '../api';
+import type { SlackWorkspace, SlackChannel, IntegrationDetail } from '../api.js';
+import { fetchSlackWorkspaces, fetchSlackChannels, fetchIntegrationDetail, updateIntegration, fetchSlackOAuthUrl, addIntegration } from '../api.js';
 
 // --- ワークスペース追加（OAuth認可） ---
 async function handleAddWorkspace() {
@@ -18,10 +19,10 @@ async function handleAddWorkspace() {
 }
 
 // --- Props & State ---
-const props = defineProps({
-  ProjectId: String,
-  mode: String
-});
+const props = defineProps<{
+  ProjectId: string;
+  mode: string;
+}>();
 
 const isEdit = props.mode === 'edit';
  // 通知イベント一覧
@@ -38,23 +39,23 @@ const route = useRoute();
 const router = useRouter();
 
 // Slack連携の各種状態バインド
-const slackWorkspaceId = ref(''); // SlackワークスペースID
-const slackChannelId = ref(''); // SlackチャネルID
-const description = ref(''); // 説明
-const notificationEvents = ref([]); // 通知イベント
+const slackWorkspaceId = ref<string>(''); // SlackワークスペースID
+const slackChannelId = ref<string>(''); // SlackチャンネルID
+const description = ref<string>(''); // 説明
+const notificationEvents = ref<IntegrationDetail['notificationEvents']>([]); // 通知イベント
 
-const workspaces = ref([]); // ワークスペース一覧
-const channels = ref([]); // Slackチャネル一覧
-const loading = ref(false); // ローディング状態
-const error = ref(null); // エラーメッセージ
-const done = ref(false); // 処理完了フラグ
-const workspaceLoading = ref(false); // ワークスペースローディング状態
-const channelLoading = ref(false); // チャネルローディング状態
-const disabled = ref(false); // フォーム送信ボタンの無効化状態
+const workspaces = ref<SlackWorkspace[]>([]); // ワークスペース一覧
+const channels = ref<SlackChannel[]>([]); // Slackチャンネル一覧
+const loading = ref<boolean>(false); // ローディング状態
+const error = ref<string|null>(null); // エラーメッセージ
+const done = ref<boolean>(false); // 処理完了フラグ
+const workspaceLoading = ref<boolean>(false); // ワークスペースローディング状態
+const channelLoading = ref<boolean>(false); // チャンネルローディング状態
+const disabled = ref<boolean>(false); // フォーム送信ボタンの無効化状態
 
 // --- Util: ワークスペース名取得 ---
-function getWorkspaceName(id) {
-  const ws = workspaces.value.find(ws => ws.id === id);
+function getWorkspaceName(id: string): string {
+  const ws = workspaces.value.find((ws: SlackWorkspace) => ws.id === id);
   return ws ? ws.name : id;
 }
 // --- Util: チャンネル名取得 ---
@@ -63,8 +64,8 @@ function getWorkspaceName(id) {
  * チャンネル名を取得する
  * @param id チャンネルID
  */
-function getChannelName(id) {
-  const ch = channels.value.find(ch => ch.id === id);
+function getChannelName(id: string): string {
+  const ch = channels.value.find((ch: SlackChannel) => ch.id === id);
   return ch ? ch.name : id;
 }
 
@@ -74,7 +75,7 @@ onMounted(async () => {
   workspaces.value = await fetchSlackWorkspaces();
   workspaceLoading.value = false;
   if (isEdit && route.params.id) {
-    const detail = await fetchIntegrationDetail(props.ProjectId, route.params.id);
+  const detail = await fetchIntegrationDetail(props.ProjectId, route.params.id as string);
     slackWorkspaceId.value = detail.slackWorkspaceId;
     slackChannelId.value = detail.slackChannelId;
     description.value = detail.description || '';
@@ -89,7 +90,7 @@ onMounted(async () => {
 });
 
 // --- 新規時のワークスペース選択でチャンネル一覧取得 ---
-watch(slackWorkspaceId, async (newWorkspaceId) => {
+watch(slackWorkspaceId, async (newWorkspaceId: string) => {
   if (!isEdit && newWorkspaceId) {
     channelLoading.value = true;
     channels.value = await fetchSlackChannels(newWorkspaceId);
@@ -100,7 +101,7 @@ watch(slackWorkspaceId, async (newWorkspaceId) => {
 });
 
 // --- 保存ボタン押下時の処理 ---
-async function handleSubmit() {
+async function handleSubmit(): Promise<void> {
   error.value = null;
   done.value = false;
   // バリデーション
@@ -119,7 +120,7 @@ async function handleSubmit() {
   loading.value = true;
   try {
     if (isEdit && route.params.id) {
-      await updateIntegration(props.ProjectId, route.params.id, {
+  await updateIntegration(props.ProjectId, route.params.id as string, {
         description: description.value,
         notificationEvents: notificationEvents.value
       });
@@ -137,15 +138,19 @@ async function handleSubmit() {
       // 保存完了後は必ず一覧へ遷移
       router.push('/integrations');
     }
-  } catch (e) {
-    error.value = e.message || '保存に失敗しました';
+  } catch (e: unknown) {
+    if (typeof e === 'object' && e && 'message' in e) {
+      error.value = (e as { message?: string }).message || '保存に失敗しました';
+    } else {
+      error.value = '保存に失敗しました';
+    }
   } finally {
     loading.value = false;
   }
 }
 
 // --- キャンセルボタン押下時の処理 ---
-function handleCancel() {
+function handleCancel(): void {
   router.push('/integrations');
 }
 </script>

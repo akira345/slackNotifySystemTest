@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "@vitejs/plugin-vue-jsx": "^5.0.1",
+    "typescript": "^5.9.2"
+  }
+}
