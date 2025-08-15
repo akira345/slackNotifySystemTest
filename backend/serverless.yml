@@ -9,6 +9,7 @@ provider:
   runtime: nodejs22.x
   region: ap-northeast-1
   logRetentionInDays: 7
+  stage: ${opt:stage, 'dev'}
 
 custom:
   secrets: ${file(../config/secrets.yml)}
@@ -18,9 +19,10 @@ plugins:
 
 functions:
   api:
+    name: Slack-integration-backend-${self:provider.stage}-api
     handler: app.handler
     environment:
-      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
       DYNAMODB_REGION: ${self:provider.region}
       SLACK_SIGNING_SECRET: ${self:custom.secrets.SLACK_SIGNING_SECRET}
     iamRoleStatements:
@@ -31,16 +33,17 @@ functions:
           - dynamodb:PutItem
           - dynamodb:DeleteItem
         Resource:
-          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
     events:
       - http:
           path: /{proxy+}
           method: ANY
           cors: true
   oauth:
+    name: Slack-integration-backend-${self:provider.stage}-oauth
     handler: oauth.handler
     environment:
-      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
       DYNAMODB_REGION: ${self:provider.region}
       SLACK_CLIENT_ID: ${self:custom.secrets.SLACK_CLIENT_ID}
       SLACK_CLIENT_SECRET: ${self:custom.secrets.SLACK_CLIENT_SECRET}
@@ -53,7 +56,7 @@ functions:
           - dynamodb:GetItem
           - dynamodb:PutItem
         Resource:
-          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
     events:
       - http:
           path: /slack/oauth/{proxy+}
@@ -65,7 +68,7 @@ resources:
     SlackIntegrations:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.secrets.DYNAMODB_TABLE}
+        TableName: ${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S

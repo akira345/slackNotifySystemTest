@@ -9,6 +9,7 @@ provider:
   runtime: nodejs22.x
   region: ap-northeast-1
   logRetentionInDays: 7
+  stage: ${opt:stage, 'dev'}
 
 custom:
   secrets: ${file(../config/secrets.yml)}
@@ -18,9 +19,10 @@ plugins:
 
 functions:
   slackbot:
+    name: slack-integration-slackbot-${self:provider.stage}-slackbot
     handler: bot.handler
     environment:
-      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}
+      DYNAMODB_TABLE: ${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
       DYNAMODB_REGION: ${self:provider.region}
       SLACK_CLIENT_ID: ${self:custom.secrets.SLACK_CLIENT_ID}
       SLACK_CLIENT_SECRET: ${self:custom.secrets.SLACK_CLIENT_SECRET}
@@ -36,7 +38,7 @@ functions:
           - dynamodb:PutItem
           - dynamodb:DeleteItem
         Resource:
-          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.secrets.DYNAMODB_TABLE}-${self:provider.stage}
     events:
       - http:
           path: slack/events
