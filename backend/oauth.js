@@ -26,11 +26,11 @@ const app = new Hono();
 
 // CORS対応ミドルウェア
 app.use("*", cors({
-    origin: '*', // Access-Control-Allow-Origin
-    credentials: true, // Access-Control-Allow-Credentials
-    allowMethods:["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "application/json"],
-  }))
+  origin: '*', // Access-Control-Allow-Origin
+  credentials: true, // Access-Control-Allow-Credentials
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "application/json"],
+}))
 
 // Slack OAuthコールバック
 app.get("/slack/oauth/callback", async (context) => {

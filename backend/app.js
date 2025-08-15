@@ -27,11 +27,11 @@ const app = new Hono();
 
 // CORS対応ミドルウェア
 app.use("*", cors({
-    origin: '*', // Access-Control-Allow-Origin
-    credentials: true, // Access-Control-Allow-Credentials
-    allowMethods:["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "application/json"],
-  }))
+  origin: '*', // Access-Control-Allow-Origin
+  credentials: true, // Access-Control-Allow-Credentials
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "application/json"],
+}))
 
 // ログ出力ミドルウェア
 app.use("*", async (context, next) => {
@@ -42,7 +42,7 @@ app.use("*", async (context, next) => {
       const body = await req.text();
       bodyLog = body;
     }
-  } catch {}
+  } catch { }
   console.log("リクエスト受信:", req.method, req.path, "body:", bodyLog);
   await next();
 });
@@ -162,10 +162,10 @@ app.post("/projects/:projectId/integrations/add", async (context) => {
     } = body;
     // バリデーション
     if (!slackWorkspaceId) {
-  return context.json({ done: false, message: "ワークスペースは必須です" }, 400);
+      return context.json({ done: false, message: "ワークスペースは必須です" }, 400);
     }
     if (!slackChannelId) {
-  return context.json({ done: false, message: "Slackチャネルは必須です" }, 400);
+      return context.json({ done: false, message: "Slackチャネルは必須です" }, 400);
     }
     if (
       !notificationEvents ||
@@ -206,10 +206,10 @@ app.post("/projects/:projectId/integrations/add", async (context) => {
       removeUndefinedValues: true,
     });
     // integrationIdも返す
-  return context.json({ done: true, data: { ...settings, integrationId } });
+    return context.json({ done: true, data: { ...settings, integrationId } });
   } catch (e) {
     console.log("新規追加エラー:", e);
-  return context.json({ done: false, message: e.message });
+    return context.json({ done: false, message: e.message });
   }
 });
 
@@ -221,8 +221,8 @@ app.post(
      * 指定projectId/integrationIdのSlack連携情報をDynamoDBから取得
      */
     try {
-  const projectId = context.req.param("projectId");
-  const integrationId = context.req.param("integrationId");
+      const projectId = context.req.param("projectId");
+      const integrationId = context.req.param("integrationId");
       const params = {
         TableName: DYNAMODB_TABLE,
         Key: {
@@ -236,7 +236,7 @@ app.post(
       }
       return context.json({ done: true, data: result.Item.settings });
     } catch (e) {
-  return context.json({ done: false, message: e.message });
+      return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -249,9 +249,9 @@ app.post(
      * description, notificationEventsのみ更新
      */
     try {
-  const projectId = context.req.param("projectId");
-  const integrationId = context.req.param("integrationId");
-  const { description, notificationEvents } = await context.req.json();
+      const projectId = context.req.param("projectId");
+      const integrationId = context.req.param("integrationId");
+      const { description, notificationEvents } = await context.req.json();
       // 既存取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -277,9 +277,9 @@ app.post(
         },
       };
       await dynamodb.send(new PutCommand(putParams));
-  return context.json({ done: true, data: settings });
+      return context.json({ done: true, data: settings });
     } catch (e) {
-  return context.json({ done: false, message: e.message });
+      return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -292,8 +292,8 @@ app.post(
      * 指定連携情報を削除
      */
     try {
-  const projectId = context.req.param("projectId");
-  const integrationId = context.req.param("integrationId");
+      const projectId = context.req.param("projectId");
+      const integrationId = context.req.param("integrationId");
       // 既存取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -342,9 +342,9 @@ app.post(
         },
       };
       await dynamodb.send(new DeleteCommand(params));
-  return context.json({ done: true });
+      return context.json({ done: true });
     } catch (e) {
-  return context.json({ done: false, message: e.message });
+      return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -358,8 +358,8 @@ app.post(
      */
     try {
       console.log("テストメッセージ送信開始");
-  const projectId = context.req.param("projectId");
-  const integrationId = context.req.param("integrationId");
+      const projectId = context.req.param("projectId");
+      const integrationId = context.req.param("integrationId");
       // integration情報取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -397,13 +397,13 @@ app.post(
           text: testText,
         });
         console.log("テストメッセージ送信成功:", testText);
-  return context.json({ done: true });
+        return context.json({ done: true });
       } catch (err) {
         console.error("テストメッセージ送信失敗:", err);
-  return context.json({ done: false, message: err.data?.error || err.message });
+        return context.json({ done: false, message: err.data?.error || err.message });
       }
     } catch (e) {
-  return context.json({ done: false, message: e.message });
+      return context.json({ done: false, message: e.message });
     }
   }
 );
