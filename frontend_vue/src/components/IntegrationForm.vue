@@ -75,7 +75,7 @@ onMounted(async () => {
   workspaces.value = await fetchSlackWorkspaces();
   workspaceLoading.value = false;
   if (isEdit && route.params.id) {
-  const detail = await fetchIntegrationDetail(props.ProjectId, route.params.id as string);
+    const detail = await fetchIntegrationDetail(props.ProjectId, route.params.id as string);
     slackWorkspaceId.value = detail.slackWorkspaceId;
     slackChannelId.value = detail.slackChannelId;
     description.value = detail.description || '';
@@ -92,9 +92,20 @@ onMounted(async () => {
 // --- 新規時のワークスペース選択でチャンネル一覧取得 ---
 watch(slackWorkspaceId, async (newWorkspaceId: string) => {
   if (!isEdit && newWorkspaceId) {
-    channelLoading.value = true;
-    channels.value = await fetchSlackChannels(newWorkspaceId);
-    channelLoading.value = false;
+    try {
+      channelLoading.value = true;
+      error.value = null;
+      channels.value = await fetchSlackChannels(newWorkspaceId);
+    } catch (e) {
+      channels.value = [];
+      if (typeof e === 'object' && e && 'message' in e) {
+        error.value = (e as { message?: string }).message || 'Slackチャンネル取得に失敗しました';
+      } else {
+        error.value = 'Slackチャンネル取得に失敗しました';
+      }
+    } finally {
+      channelLoading.value = false;
+    }
   } else if (!isEdit) {
     channels.value = [];
   }
