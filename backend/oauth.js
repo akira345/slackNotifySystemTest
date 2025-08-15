@@ -2,8 +2,9 @@
 // Slack OAuth用エンドポイント (Serverless Framework v3, Node.js 22)
 // Slackワークスペース追加時のOAuthフローをサポート
 
-import express from "express";
-import serverless from "serverless-http";
+import { Hono } from "hono";
+import { cors } from 'hono/cors'
+import { handle } from "hono/aws-lambda";
 import axios from "axios";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
@@ -21,22 +22,19 @@ const DYNAMODB_REGION = process.env.DYNAMODB_REGION || "ap-northeast-1";
 
 const ddbClient = new DynamoDBClient({ region: DYNAMODB_REGION });
 const dynamodb = DynamoDBDocumentClient.from(ddbClient);
-const app = express();
+const app = new Hono();
 
-// CORS対応ミドルウェア追加
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Content-Type", "application/json");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// CORS対応ミドルウェア
+app.use("*", cors({
+    origin: '*', // Access-Control-Allow-Origin
+    credentials: true, // Access-Control-Allow-Credentials
+    allowMethods:["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "application/json"],
+  }))
 
 // Slack OAuthコールバック
-app.get("/slack/oauth/callback", async (req, res) => {
-  const { code } = req.query;
+app.get("/slack/oauth/callback", async (context) => {
+  const { code } = context.req.query();
   try {
     console.log("oAuthコールバック処理開始");
     const result = await axios.post(
@@ -83,36 +81,33 @@ app.get("/slack/oauth/callback", async (req, res) => {
           Item: item,
         })
       );
-      res.status(200).json({
+      return context.json({
         done: true,
-        message:
-          "Slackワークスペース連携が完了しました。画面を閉じてください。",
+        message: "Slackワークスペース連携が完了しました。画面を閉じてください。",
       });
     } else {
-      res.status(200).json({
+      return context.json({
         done: false,
         message: "Slack OAuth失敗: " + result.data.error,
       });
     }
   } catch (e) {
-    res
-      .status(200)
-      .json({ done: false, message: "Slack OAuthエラー: " + e.message });
+    return context.json({ done: false, message: "Slack OAuthエラー: " + e.message });
   }
 });
 
 // OAuth認可URLを返すAPI
-app.get("/slack/oauth/url", (req, res) => {
+app.get("/slack/oauth/url", (context) => {
   const state = Math.random().toString(36).substring(2);
   const scopeParam = SLACK_SCOPES.join(",");
   const url = `https://slack.com/oauth/v2/authorize?client_id=${SLACK_CLIENT_ID}&scope=${scopeParam}&redirect_uri=${encodeURIComponent(
     SLACK_REDIRECT_URI
   )}&state=${state}`;
-  res.status(200).json({ done: true, url });
+  return context.json({ done: true, url });
 });
 
 // 承認済みワークスペース一覧取得API
-app.get("/slack/oauth/workspaces", async (req, res) => {
+app.get("/slack/oauth/workspaces", async (context) => {
   try {
     console.log("Fetching workspaces from DynamoDB");
     const params = {
@@ -125,22 +120,19 @@ app.get("/slack/oauth/workspaces", async (req, res) => {
       id: item.SK,
       name: item.team?.name || item.SK,
     }));
-    console.log("Fetched workspaces:", workspaces);
-    res.status(200).json({ done: true, data: workspaces });
+    return context.json({ done: true, data: workspaces });
   } catch (e) {
-    console.error("Error fetching workspaces:", e);
-    res.status(200).json({ done: false, message: e.message });
+    return context.json({ done: false, message: e.message });
   }
 });
 
 // チャンネル一覧取得API
-app.get("/slack/oauth/channels", async (req, res) => {
+
+app.get("/slack/oauth/channels", async (context) => {
   console.log("チャンネル一覧取得開始");
-  const { workspaceId } = req.query;
+  const { workspaceId } = context.req.query();
   if (!workspaceId)
-    return res
-      .status(200)
-      .json({ done: false, message: "workspaceId is required" });
+    return context.json({ done: false, message: "workspaceId is required" });
   try {
     // DynamoDBから該当ワークスペースのアクセストークンを取得
     const getParams = {
@@ -160,10 +152,8 @@ app.get("/slack/oauth/channels", async (req, res) => {
     const item = (result.Items && result.Items[0]) || null;
     const accessToken = item?.access_token;
     if (!accessToken)
-      return res
-        .status(200)
-        .json({ done: false, message: "アクセストークンが見つかりません" });
-    // 取得したアクセストークンでSlack APIを実行(直接Slack APIを叩く例)
+      return context.json({ done: false, message: "アクセストークンが見つかりません" });
+    // 取得したアクセストークンでSlack APIを実行
     const slackResult = await axios.get(
       "https://slack.com/api/conversations.list",
       {
@@ -176,10 +166,10 @@ app.get("/slack/oauth/channels", async (req, res) => {
       id: ch.id,
       name: ch.name,
     }));
-    res.status(200).json({ done: true, data: channels });
+    return context.json({ done: true, data: channels });
   } catch (e) {
-    res.status(200).json({ done: false, message: e.message });
+    return context.json({ done: false, message: e.message });
   }
 });
 
-export const handler = serverless(app);
+export const handler = handle(app);

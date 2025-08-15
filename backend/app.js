@@ -1,9 +1,10 @@
 // app.js
 // Slack連携技術検証用バックエンド (AWS Lambda + Node.js 22 + Serverless Framework v3)
 // 主な役割: API Gateway経由のHTTPリクエストを受け、DynamoDBとSlack APIを操作する
-
-import express from "express";
-import serverless from "serverless-http";
+// Honoベース実装
+import { Hono } from "hono";
+import { cors } from 'hono/cors'
+import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
@@ -22,35 +23,28 @@ const DYNAMODB_REGION = process.env.DYNAMODB_REGION || "ap-northeast-1";
 // DynamoDBクライアント初期化（v3）
 const ddbClient = new DynamoDBClient({ region: DYNAMODB_REGION });
 const dynamodb = DynamoDBDocumentClient.from(ddbClient);
+const app = new Hono();
 
-// Expressアプリ初期化
-const app = express();
-app.use(express.json());
+// CORS対応ミドルウェア
+app.use("*", cors({
+    origin: '*', // Access-Control-Allow-Origin
+    credentials: true, // Access-Control-Allow-Credentials
+    allowMethods:["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "application/json"],
+  }))
 
-// CORS対応ミドルウェア追加
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Content-Type", "application/json");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
-// すべてのリクエストをログ出力
-app.use((req, res, next) => {
-  let bodyLog;
-  if (Buffer.isBuffer(req.body)) {
-    bodyLog = req.body.toString();
-  } else {
-    try {
-      bodyLog = JSON.stringify(req.body, null, 2);
-    } catch {
-      bodyLog = String(req.body);
+// ログ出力ミドルウェア
+app.use("*", async (context, next) => {
+  const req = context.req;
+  let bodyLog = "";
+  try {
+    if (req.method !== "GET") {
+      const body = await req.text();
+      bodyLog = body;
     }
-  }
+  } catch {}
   console.log("リクエスト受信:", req.method, req.path, "body:", bodyLog);
-  next();
+  await next();
 });
 // ユーティリティ: Slackチャンネル名・ワークスペース名解決
 async function resolveSlackNames(slackWorkspaceId, slackChannelId) {
@@ -103,14 +97,14 @@ async function resolveSlackNames(slackWorkspaceId, slackChannelId) {
 }
 
 // 一覧取得
-app.post("/projects/:projectId/integrations", async (req, res) => {
+app.post("/projects/:projectId/integrations", async (context) => {
   /**
    * 指定projectIdの全Slack連携情報をDynamoDBから取得し、
    * Slack APIでチャンネル名・ワークスペース名を解決して返す
    */
   try {
     console.log("一覧取得開始");
-    const projectId = req.params.projectId;
+    const projectId = context.req.param("projectId");
     const params = {
       TableName: DYNAMODB_TABLE,
       KeyConditionExpression: "PK = :pk AND begins_with(SK, :skprefix)",
@@ -123,7 +117,7 @@ app.post("/projects/:projectId/integrations", async (req, res) => {
     const items = result.Items || [];
     console.log(`取得した連携数: ${items.length}`);
     if (items.length === 0) {
-      return res.status(200).json({ done: true, data: [] });
+      return context.json({ done: true, data: [] });
     }
     console.log("Slack名解決開始");
     // Slack名解決
@@ -143,49 +137,45 @@ app.post("/projects/:projectId/integrations", async (req, res) => {
       })
     );
     console.log("一覧取得完了");
-    res.status(200).json({ done: true, data });
+    return context.json({ done: true, data });
   } catch (e) {
     console.error("一覧取得エラー:", e);
-    res.status(200).json({ done: false, message: e.message });
+    return context.json({ done: false, message: e.message });
   }
 });
 
 // 新規追加
-app.post("/projects/:projectId/integrations/add", async (req, res) => {
+// 新規追加API
+app.post("/projects/:projectId/integrations/add", async (context) => {
   /**
    * Slack連携情報を新規追加
    */
   try {
     console.log("新規追加開始");
-    const projectId = req.params.projectId;
-    console.log("リクエストボディ:", req.body.toString());
-
+    const projectId = context.req.param("projectId");
+    const body = await context.req.json();
     const {
       slackWorkspaceId,
       slackChannelId,
       notificationEvents,
       description,
-    } = JSON.parse(req.body.toString());
+    } = body;
     // バリデーション
     if (!slackWorkspaceId) {
-      return res
-        .status(400)
-        .json({ done: false, message: "ワークスペースは必須です" });
+  return context.json({ done: false, message: "ワークスペースは必須です" }, 400);
     }
     if (!slackChannelId) {
-      return res
-        .status(400)
-        .json({ done: false, message: "Slackチャネルは必須です" });
+  return context.json({ done: false, message: "Slackチャネルは必須です" }, 400);
     }
     if (
       !notificationEvents ||
       !Array.isArray(notificationEvents) ||
       notificationEvents.length === 0
     ) {
-      return res.status(400).json({
+      return context.json({
         done: false,
         message: "通知イベントは1つ以上選択してください",
-      });
+      }, 400);
     }
     const integrationId = uuidv4();
     // Slack名解決
@@ -216,23 +206,23 @@ app.post("/projects/:projectId/integrations/add", async (req, res) => {
       removeUndefinedValues: true,
     });
     // integrationIdも返す
-    res.status(200).json({ done: true, data: { ...settings, integrationId } });
+  return context.json({ done: true, data: { ...settings, integrationId } });
   } catch (e) {
     console.log("新規追加エラー:", e);
-    res.status(200).json({ done: false, message: e.message });
+  return context.json({ done: false, message: e.message });
   }
 });
 
 // 個別取得
 app.post(
   "/projects/:projectId/integrations/:integrationId",
-  async (req, res) => {
+  async (context) => {
     /**
      * 指定projectId/integrationIdのSlack連携情報をDynamoDBから取得
      */
     try {
-      const projectId = req.params.projectId;
-      const integrationId = req.params.integrationId;
+  const projectId = context.req.param("projectId");
+  const integrationId = context.req.param("integrationId");
       const params = {
         TableName: DYNAMODB_TABLE,
         Key: {
@@ -242,13 +232,11 @@ app.post(
       };
       const result = await dynamodb.send(new GetCommand(params));
       if (!result.Item) {
-        return res
-          .status(200)
-          .json({ done: false, message: "Integration not found" });
+        return context.json({ done: false, message: "Integration not found" });
       }
-      res.status(200).json({ done: true, data: result.Item.settings });
+      return context.json({ done: true, data: result.Item.settings });
     } catch (e) {
-      res.status(200).json({ done: false, message: e.message });
+  return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -256,16 +244,14 @@ app.post(
 // 編集
 app.post(
   "/projects/:projectId/integrations/:integrationId/edit",
-  async (req, res) => {
+  async (context) => {
     /**
      * description, notificationEventsのみ更新
      */
     try {
-      const projectId = req.params.projectId;
-      const integrationId = req.params.integrationId;
-      const { description, notificationEvents } = JSON.parse(
-        req.body.toString()
-      );
+  const projectId = context.req.param("projectId");
+  const integrationId = context.req.param("integrationId");
+  const { description, notificationEvents } = await context.req.json();
       // 既存取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -276,9 +262,7 @@ app.post(
       };
       const result = await dynamodb.send(new GetCommand(getParams));
       if (!result.Item) {
-        return res
-          .status(200)
-          .json({ done: false, message: "Integration not found" });
+        return context.json({ done: false, message: "Integration not found" });
       }
       // 更新
       const settings = result.Item.settings;
@@ -293,9 +277,9 @@ app.post(
         },
       };
       await dynamodb.send(new PutCommand(putParams));
-      res.status(200).json({ done: true, data: settings });
+  return context.json({ done: true, data: settings });
     } catch (e) {
-      res.status(200).json({ done: false, message: e.message });
+  return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -303,13 +287,13 @@ app.post(
 // 削除
 app.post(
   "/projects/:projectId/integrations/:integrationId/delete",
-  async (req, res) => {
+  async (context) => {
     /**
      * 指定連携情報を削除
      */
     try {
-      const projectId = req.params.projectId;
-      const integrationId = req.params.integrationId;
+  const projectId = context.req.param("projectId");
+  const integrationId = context.req.param("integrationId");
       // 既存取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -358,9 +342,9 @@ app.post(
         },
       };
       await dynamodb.send(new DeleteCommand(params));
-      res.status(200).json({ done: true });
+  return context.json({ done: true });
     } catch (e) {
-      res.status(200).json({ done: false, message: e.message });
+  return context.json({ done: false, message: e.message });
     }
   }
 );
@@ -368,14 +352,14 @@ app.post(
 // テストメッセージ送信API
 app.post(
   "/projects/:projectId/integrations/:integrationId/test",
-  async (req, res) => {
+  async (context) => {
     /**
      * 指定integrationIdのSlackワークスペース・チャネルにテストメッセージを送信
      */
     try {
       console.log("テストメッセージ送信開始");
-      const projectId = req.params.projectId;
-      const integrationId = req.params.integrationId;
+  const projectId = context.req.param("projectId");
+  const integrationId = context.req.param("integrationId");
       // integration情報取得
       const getParams = {
         TableName: DYNAMODB_TABLE,
@@ -386,9 +370,7 @@ app.post(
       };
       const result = await dynamodb.send(new GetCommand(getParams));
       if (!result.Item) {
-        return res
-          .status(200)
-          .json({ done: false, message: "Integration not found" });
+        return context.json({ done: false, message: "Integration not found" });
       }
       console.log("取得した連携情報:", result.Item);
       const s = result.Item.settings;
@@ -403,9 +385,7 @@ app.post(
       const wsResult = await dynamodb.send(new GetCommand(wsParams));
       const accessToken = wsResult.Item?.access_token;
       if (!accessToken) {
-        return res
-          .status(200)
-          .json({ done: false, message: "アクセストークンが見つかりません" });
+        return context.json({ done: false, message: "アクセストークンが見つかりません" });
       }
       console.log("取得したアクセストークン:", accessToken);
       // Slack APIでメッセージ送信
@@ -417,18 +397,16 @@ app.post(
           text: testText,
         });
         console.log("テストメッセージ送信成功:", testText);
-        res.status(200).json({ done: true });
+  return context.json({ done: true });
       } catch (err) {
         console.error("テストメッセージ送信失敗:", err);
-        res
-          .status(200)
-          .json({ done: false, message: err.data?.error || err.message });
+  return context.json({ done: false, message: err.data?.error || err.message });
       }
     } catch (e) {
-      res.status(200).json({ done: false, message: e.message });
+  return context.json({ done: false, message: e.message });
     }
   }
 );
 
 // Lambdaハンドラ
-export const handler = serverless(app);
+export const handler = handle(app);
