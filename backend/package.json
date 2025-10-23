@@ -15,7 +15,7 @@
     "@aws-sdk/lib-dynamodb": "^3.850.0",
     "@slack/web-api": "^7.9.3",
     "express": "^5.1.0",
-    "serverless-http": "^3.2.0",
+    "serverless-http": "^4.0.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
