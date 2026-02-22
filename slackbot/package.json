@@ -8,8 +8,8 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.932.0",
-    "@aws-sdk/lib-dynamodb": "^3.932.0",
+    "@aws-sdk/client-dynamodb": "^3.995.0",
+    "@aws-sdk/lib-dynamodb": "^3.995.0",
     "@slack/bolt": "^4.6.0"
   },
   "devDependencies": {
