@@ -19,7 +19,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "serverless": "^4.23.0",
+    "serverless": "^4.38.1",
     "serverless-iam-roles-per-function": "^3.2.0"
   }
 }
